@@ -111,7 +111,7 @@ export const T = {
 
     // ApiStatus
     checkingApi:      "Verificando API…",
-    apiOnline:        (rem: number, lim: number) => `API Online · ${rem}/${lim} req`,
+    apiOnline:        (rpm: number | null) => rpm !== null ? `API Online · ${rpm}/10 rpm` : "API Online",
     apiOffline:       (reason: string) => `API Offline · ${reason}`,
 
     // Participants PIN gate
@@ -243,7 +243,7 @@ export const T = {
 
     // ApiStatus
     checkingApi:      "Checking API…",
-    apiOnline:        (rem: number, lim: number) => `API Online · ${rem}/${lim} req`,
+    apiOnline:        (rpm: number | null) => rpm !== null ? `API Online · ${rpm}/10 rpm` : "API Online",
     apiOffline:       (reason: string) => `API Offline · ${reason}`,
 
     // Participants PIN gate

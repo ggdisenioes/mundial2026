@@ -1,104 +1,115 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { MATCHES, API_NAME_TO_CODE } from "@/lib/matches";
+import { MATCHES, TEAMS, FDORG_NAME_TO_CODE } from "@/lib/matches";
 import type { MatchScore, KnockoutResults } from "@/types";
 
-const LEAGUE_ID = 1;
-const SEASON = 2026;
+const BASE = "https://api.football-data.org/v4";
 
 function verifySecret(req: NextRequest): boolean {
-  const secret = req.headers.get("x-cron-secret");
-  return secret === process.env.CRON_SECRET;
+  return req.headers.get("x-cron-secret") === process.env.CRON_SECRET;
 }
 
-interface ApiFixture {
-  fixture: { id: number; status: { short: string } };
-  league: { round: string };
-  teams: { home: { name: string }; away: { name: string } };
-  goals: { home: number | null; away: number | null };
-  score: { penalty?: { home: number | null; away: number | null } };
+interface FdMatch {
+  status: string;
+  stage: string;
+  homeTeam: { name: string };
+  awayTeam: { name: string };
+  score: {
+    winner: "HOME_TEAM" | "AWAY_TEAM" | "DRAW" | null;
+    fullTime: { home: number | null; away: number | null };
+  };
 }
 
-const TEAMS_BY_APIFOOTBALL_NAME: Record<string, string> = {
-  "Mexico": "México", "South Africa": "Sudáfrica", "Korea Republic": "Corea del Sur",
-  "Czech Republic": "Rep. Checa", "Canada": "Canadá", "Bosnia and Herzegovina": "Bosnia",
-  "Qatar": "Catar", "Switzerland": "Suiza", "Brazil": "Brasil", "Morocco": "Marruecos",
-  "Haiti": "Haití", "Scotland": "Escocia", "United States": "Estados Unidos",
-  "Paraguay": "Paraguay", "Australia": "Australia", "Turkey": "Turquía",
-  "Germany": "Alemania", "Curacao": "Curazao", "Ivory Coast": "C. de Marfil", "Ecuador": "Ecuador",
-  "Netherlands": "Países Bajos", "Japan": "Japón", "Sweden": "Suecia", "Tunisia": "Túnez",
-  "Belgium": "Bélgica", "Egypt": "Egipto", "Iran": "Irán", "New Zealand": "Nueva Zelanda",
-  "Spain": "España", "Cape Verde": "Cabo Verde", "Saudi Arabia": "Arabia Saudí", "Uruguay": "Uruguay",
-  "France": "Francia", "Senegal": "Senegal", "Iraq": "Irak", "Norway": "Noruega",
-  "Argentina": "Argentina", "Algeria": "Argelia", "Austria": "Austria", "Jordan": "Jordania",
-  "Portugal": "Portugal", "Congo DR": "Congo", "Uzbekistan": "Uzbekistán", "Colombia": "Colombia",
-  "England": "Inglaterra", "Croatia": "Croacia", "Ghana": "Ghana", "Panama": "Panamá",
-};
+function teamCode(name: string): string | null {
+  return FDORG_NAME_TO_CODE[name] ?? null;
+}
+
+// Returns the Spanish display name for a team (as used in participant picks)
+function teamName(fdName: string): string {
+  const code = teamCode(fdName);
+  return code ? TEAMS[code]?.name ?? fdName : fdName;
+}
 
 export async function GET(req: NextRequest) {
   if (!verifySecret(req)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  try {
-    const res = await fetch(
-      `https://v3.football.api-sports.io/fixtures?league=${LEAGUE_ID}&season=${SEASON}`,
-      {
-        headers: { "x-apisports-key": process.env.APIFOOTBALL_KEY! },
-        next: { revalidate: 0 },
-      }
-    );
-    const json = await res.json();
-    const fixtures = json.response as ApiFixture[];
+  const key = process.env.FOOTBALLDATA_KEY;
+  if (!key) {
+    return NextResponse.json({ error: "FOOTBALLDATA_KEY not set" }, { status: 500 });
+  }
 
-    const scores: (MatchScore | null)[] = Array(72).fill(null);
-    MATCHES.forEach(([home, away], idx) => {
-      const fix = fixtures.find(f => {
-        const fh = API_NAME_TO_CODE[f.teams.home.name];
-        const fa = API_NAME_TO_CODE[f.teams.away.name];
-        return fh === home && fa === away && f.fixture.status.short === "FT";
-      });
-      if (fix) scores[idx] = { h: fix.goals.home ?? 0, a: fix.goals.away ?? 0 };
+  try {
+    const res = await fetch(`${BASE}/competitions/WC/matches`, {
+      headers: { "X-Auth-Token": key },
+      next: { revalidate: 0 },
     });
 
-    const knockout: Partial<KnockoutResults> = {
-      winner: "", runnerUp: "",
-      semis: ["", ""], qf: ["", "", "", ""],
-      r16: Array(8).fill(""), r32: Array(16).fill(""),
-    };
-
-    const getLoser = (f: ApiFixture): string | null => {
-      if (f.fixture.status.short !== "FT") return null;
-      const h = f.goals.home ?? 0, a = f.goals.away ?? 0;
-      if (h === a) return null;
-      const loserTeam = h > a ? f.teams.away.name : f.teams.home.name;
-      return TEAMS_BY_APIFOOTBALL_NAME[loserTeam] || loserTeam;
-    };
-    const getWinner = (f: ApiFixture): string | null => {
-      if (f.fixture.status.short !== "FT") return null;
-      const h = f.goals.home ?? 0, a = f.goals.away ?? 0;
-      const winnerTeam = h >= a ? f.teams.home.name : f.teams.away.name;
-      return TEAMS_BY_APIFOOTBALL_NAME[winnerTeam] || winnerTeam;
-    };
-
-    const r32Fixtures = fixtures.filter(f => f.league.round.includes("Round of 32"));
-    knockout.r32 = r32Fixtures.map(getLoser).filter(Boolean).slice(0, 16) as string[];
-
-    const r16Fixtures = fixtures.filter(f => f.league.round.includes("Round of 16"));
-    knockout.r16 = r16Fixtures.map(getLoser).filter(Boolean).slice(0, 8) as string[];
-
-    const qfFixtures = fixtures.filter(f => f.league.round.toLowerCase().includes("quarter"));
-    knockout.qf = qfFixtures.map(getLoser).filter(Boolean).slice(0, 4) as string[];
-
-    const sfFixtures = fixtures.filter(f => f.league.round.toLowerCase().includes("semi"));
-    knockout.semis = sfFixtures.map(getLoser).filter(Boolean).slice(0, 2) as string[];
-
-    const finalFix = fixtures.find(f => f.league.round.toLowerCase().includes("final") && !f.league.round.toLowerCase().includes("semi"));
-    if (finalFix && finalFix.fixture.status.short === "FT") {
-      knockout.winner = getWinner(finalFix) || "";
-      knockout.runnerUp = getLoser(finalFix) || "";
+    if (!res.ok) {
+      const text = await res.text();
+      return NextResponse.json({ error: `API error ${res.status}: ${text}` }, { status: 500 });
     }
 
+    const data = await res.json();
+    const matches: FdMatch[] = data.matches ?? [];
+
+    // ── Group stage scores ──────────────────────────────────────────────────
+    const scores: (MatchScore | null)[] = Array(72).fill(null);
+
+    MATCHES.forEach(([home, away], idx) => {
+      const fix = matches.find(m => {
+        if (m.status !== "FINISHED") return false;
+        if (m.stage !== "GROUP_STAGE") return false;
+        return teamCode(m.homeTeam.name) === home && teamCode(m.awayTeam.name) === away;
+      });
+      if (fix) {
+        scores[idx] = {
+          h: fix.score.fullTime.home ?? 0,
+          a: fix.score.fullTime.away ?? 0,
+        };
+      }
+    });
+
+    // ── Knockout results ────────────────────────────────────────────────────
+    const knockout: KnockoutResults = {
+      winner: "", runnerUp: "",
+      semis: Array(2).fill(""),
+      qf:    Array(4).fill(""),
+      r16:   Array(8).fill(""),
+      r32:   Array(16).fill(""),
+    };
+
+    const finished = matches.filter(m => m.status === "FINISHED" && m.stage !== "GROUP_STAGE" && m.stage !== "THIRD_PLACE");
+
+    const r32losers: string[] = [], r16losers: string[] = [];
+    const qfLosers: string[]  = [], sfLosers: string[]  = [];
+
+    for (const m of finished) {
+      const { winner } = m.score;
+      if (!winner || winner === "DRAW") continue;
+
+      const loser  = teamName(winner === "HOME_TEAM" ? m.awayTeam.name : m.homeTeam.name);
+      const champ  = teamName(winner === "HOME_TEAM" ? m.homeTeam.name : m.awayTeam.name);
+
+      switch (m.stage) {
+        case "LAST_32":       r32losers.push(loser); break;
+        case "LAST_16":       r16losers.push(loser); break;
+        case "QUARTER_FINALS":qfLosers.push(loser);  break;
+        case "SEMI_FINALS":   sfLosers.push(loser);  break;
+        case "FINAL":
+          knockout.winner   = champ;
+          knockout.runnerUp = loser;
+          break;
+      }
+    }
+
+    knockout.r32  = r32losers.slice(0, 16);
+    knockout.r16  = r16losers.slice(0, 8);
+    knockout.qf   = qfLosers.slice(0, 4);
+    knockout.semis= sfLosers.slice(0, 2);
+
+    // ── Save to Supabase ────────────────────────────────────────────────────
     const { error } = await supabaseAdmin
       .from("resultados")
       .update({ scores, knockout, updated_at: new Date().toISOString() })
@@ -109,8 +120,10 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       ok: true,
       played: scores.filter(Boolean).length,
+      knockout_matches: finished.length,
       synced_at: new Date().toISOString(),
     });
+
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : "Unknown error";
     return NextResponse.json({ error: msg }, { status: 500 });

@@ -36,17 +36,21 @@ export const GROUPS = "ABCDEFGHIJKL".split("");
 
 export const TEAM_LIST = Object.values(TEAMS).map(t => t.name).sort((a, b) => a.localeCompare(b, "es"));
 
-export const API_NAME_TO_CODE: Record<string, string> = {
-  "Mexico": "MEX", "South Africa": "ZAF", "Korea Republic": "KOR", "Czech Republic": "CZE",
-  "Canada": "CAN", "Bosnia and Herzegovina": "BIH", "Qatar": "QAT", "Switzerland": "SUI",
+// football-data.org team names → internal code
+export const FDORG_NAME_TO_CODE: Record<string, string> = {
+  "Mexico": "MEX", "South Africa": "South Africa ZAF", "Korea Republic": "KOR", "Korea Rep.": "KOR",
+  "Czech Republic": "CZE", "Czechia": "CZE",
+  "Canada": "CAN", "Bosnia and Herzegovina": "BIH", "Bosnia-Herzegovina": "BIH", "Qatar": "QAT", "Switzerland": "SUI",
   "Brazil": "BRA", "Morocco": "MAR", "Haiti": "HAI", "Scotland": "SCO",
-  "United States": "USA", "Paraguay": "PAR", "Australia": "AUS", "Turkey": "TUR",
-  "Germany": "GER", "Curacao": "CUW", "Ivory Coast": "CIV", "Ecuador": "ECU",
-  "Netherlands": "NED", "Japan": "JPN", "Sweden": "SWE", "Tunisia": "TUN",
+  "United States": "USA", "USA": "USA", "Paraguay": "PAR", "Australia": "AUS", "Turkey": "TUR", "Türkiye": "TUR",
+  "Germany": "GER", "Curaçao": "CUW", "Curacao": "CUW",
+  "Ivory Coast": "CIV", "Côte d'Ivoire": "CIV", "Cote d'Ivoire": "CIV",
+  "Ecuador": "ECU", "Netherlands": "NED", "Japan": "JPN", "Sweden": "SWE", "Tunisia": "TUN",
   "Belgium": "BEL", "Egypt": "EGY", "Iran": "IRN", "New Zealand": "NZL",
   "Spain": "ESP", "Cape Verde": "CPV", "Saudi Arabia": "KSA", "Uruguay": "URU",
   "France": "FRA", "Senegal": "SEN", "Iraq": "IRQ", "Norway": "NOR",
   "Argentina": "ARG", "Algeria": "ALG", "Austria": "AUT", "Jordan": "JOR",
-  "Portugal": "POR", "Congo DR": "CGO", "Uzbekistan": "UZB", "Colombia": "COL",
+  "Portugal": "POR", "DR Congo": "CGO", "Congo DR": "CGO", "Congo": "CGO", "Democratic Republic of Congo": "CGO",
+  "Uzbekistan": "UZB", "Colombia": "COL",
   "England": "ENG", "Croatia": "CRO", "Ghana": "GHA", "Panama": "PAN",
 };
