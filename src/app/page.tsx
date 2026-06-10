@@ -27,7 +27,6 @@ export default function Home() {
     setParticipants(pRes.participants ?? []);
     setResults(rRes.results ?? null);
     setSettings(rRes.settings ? {
-      spainMode: rRes.settings.spain_mode,
       adminPinHash: rRes.settings.admin_pin_hash,
     } : null);
     setLoading(false);
@@ -52,7 +51,7 @@ export default function Home() {
   ];
 
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center text-slate-400">
+    <div className="min-h-screen flex items-center justify-center text-slate-400 text-lg">
       Cargando…
     </div>
   );
@@ -60,24 +59,24 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800">
       <div className="bg-gradient-to-r from-emerald-700 via-teal-600 to-emerald-600 text-white">
-        <div className="max-w-5xl mx-auto px-4 py-5">
-          <h1 className="text-2xl font-extrabold">⚽ Prode Mundial 2026</h1>
-          <p className="text-emerald-50 text-sm">Tablero en vivo · {participants.length} participantes</p>
+        <div className="max-w-6xl mx-auto px-6 py-6">
+          <h1 className="text-3xl font-extrabold">⚽ Prode Mundial 2026</h1>
+          <p className="text-emerald-100 text-base mt-1">Tablero en vivo · {participants.length} participantes</p>
         </div>
-        <div className="max-w-5xl mx-auto px-4 flex gap-1 overflow-x-auto">
+        <div className="max-w-6xl mx-auto px-6 flex gap-1 overflow-x-auto">
           {tabs.map(([k, label]) => (
             <button key={k} onClick={() => setTab(k)}
-              className={`px-4 py-2 text-sm font-medium rounded-t-lg whitespace-nowrap transition ${tab === k ? "bg-slate-50 text-emerald-700" : "text-emerald-50 hover:bg-white/10"}`}>
+              className={`px-5 py-3 text-base font-medium rounded-t-lg whitespace-nowrap transition ${tab === k ? "bg-slate-50 text-emerald-700" : "text-emerald-50 hover:bg-white/10"}`}>
               {label}
             </button>
           ))}
         </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-4 py-6">
+      <div className="max-w-6xl mx-auto px-6 py-8">
         {tab === "tabla" && results && settings && (
           <Leaderboard
-            participants={participants} results={results} settings={settings}
+            participants={participants} results={results}
             onSelect={setSel} onRefresh={fetchAll}
           />
         )}
@@ -91,11 +90,11 @@ export default function Home() {
             onRefresh={fetchAll}
           />
         )}
-        {tab === "reglas" && settings && <Rules spainMode={settings.spainMode} />}
+        {tab === "reglas" && <Rules />}
       </div>
 
       {sel && results && settings && (
-        <DetailModal p={sel} results={results} settings={settings} onClose={() => setSel(null)} />
+        <DetailModal p={sel} results={results} onClose={() => setSel(null)} />
       )}
     </div>
   );

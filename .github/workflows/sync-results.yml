@@ -1,0 +1,15 @@
+name: Sync resultados API-Football
+
+on:
+  schedule:
+    - cron: "*/20 * * * *"   # cada 20 minutos
+  workflow_dispatch:          # permite dispararlo manualmente desde GitHub
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Llamar endpoint /api/sync
+        run: |
+          curl -f -X GET "${{ secrets.APP_URL }}/api/sync" \
+            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}"

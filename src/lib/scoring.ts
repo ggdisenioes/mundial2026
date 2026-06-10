@@ -57,14 +57,14 @@ function tierScore(predArr: string[], actualArr: string[], pts: number): PhaseSc
   return { pts: c * pts, hits: c };
 }
 
-export function scoreParticipant(p: Participant, results: Results, spainMode: "replace" | "add"): ParticipantScore {
-  const replace = spainMode === "replace";
+// España siempre excluida de P1. P2: marcador exacto = 10pts, cualquier otra cosa = 0pts.
+export function scoreParticipant(p: Participant, results: Results): ParticipantScore {
   let p1 = 0, p1ok = 0, p1n = 0, p2 = 0;
 
-  MATCHES.forEach(([, , ], i) => {
+  MATCHES.forEach(([, ,], i) => {
     const s = results.scores[i];
     if (!s) return;
-    if (SPAIN_IDX.includes(i) && replace) return;
+    if (SPAIN_IDX.includes(i)) return; // España solo puntúa en P2
     p1n++;
     if (p.picks.p1[i] === deriveResult(s.h, s.a)) { p1 += 3; p1ok++; }
   });
@@ -74,13 +74,8 @@ export function scoreParticipant(p: Participant, results: Results, spainMode: "r
     if (!s) return null;
     const pred = parseScore(p.picks.p2[k]);
     const exact = !!pred && pred.h === s.h && pred.a === s.a;
-    const got = p.picks.p1[mi] === deriveResult(s.h, s.a);
-    let pts = 0;
-    let label: "exacto" | "1X2" | "fallo" = "fallo";
-    if (replace) pts = exact ? 10 : got ? 3 : 0;
-    else pts = exact ? 10 : 0;
-    if (exact) label = "exacto";
-    else if (got && replace) label = "1X2";
+    const pts = exact ? 10 : 0;
+    const label: "exacto" | "fallo" = exact ? "exacto" : "fallo";
     p2 += pts;
     return { pts, label };
   });

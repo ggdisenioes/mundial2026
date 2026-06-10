@@ -14,7 +14,7 @@ export async function GET() {
 
 export async function PUT(req: NextRequest) {
   const body = await req.json();
-  const { pin, scores, knockout, bonus, spainMode } = body;
+  const { pin, scores, knockout, bonus } = body;
 
   const { data: set } = await supabase.from("settings").select("admin_pin_hash").single();
   if (set?.admin_pin_hash && hashPin(String(pin)) !== set.admin_pin_hash) {
@@ -26,10 +26,6 @@ export async function PUT(req: NextRequest) {
     .update({ scores, knockout, bonus, updated_at: new Date().toISOString() })
     .eq("id", 1);
   if (re) return NextResponse.json({ error: re.message }, { status: 500 });
-
-  if (spainMode !== undefined) {
-    await supabaseAdmin.from("settings").update({ spain_mode: spainMode }).eq("id", 1);
-  }
 
   return NextResponse.json({ ok: true });
 }

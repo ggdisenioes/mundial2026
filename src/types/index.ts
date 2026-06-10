@@ -65,7 +65,7 @@ export interface PhaseScore {
 
 export interface P2Detail {
   pts: number;
-  label: "exacto" | "1X2" | "fallo";
+  label: "exacto" | "fallo";
 }
 
 export interface ScoreBreakdown {
@@ -91,6 +91,5 @@ export interface ParticipantScore {
 }
 
 export interface Settings {
-  spainMode: "replace" | "add";
   adminPinHash: string;
 }
