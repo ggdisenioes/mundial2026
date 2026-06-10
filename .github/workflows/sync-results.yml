@@ -1,15 +1,26 @@
-name: Sync resultados API-Football
+name: Sync resultados football-data.org
 
 on:
   schedule:
-    - cron: "*/20 * * * *"   # cada 20 minutos
-  workflow_dispatch:          # permite dispararlo manualmente desde GitHub
+    # Mundial 2026 — partidos entre 16:00 y 03:00 UTC (Norteamérica)
+    # Primera ronda: 16:00 UTC (mediodía EDT) · Última ronda: ~01:00 UTC (9pm PDT)
+    # Margen 1h extra al inicio y al final para cubrir variaciones de horario
+    - cron: "*/20 15-23 * * *"   # 15:00 → 23:40 UTC
+    - cron: "*/20 0-4 * * *"     # 00:00 → 04:40 UTC
+  workflow_dispatch:              # disparo manual desde GitHub Actions
 
 jobs:
   sync:
     runs-on: ubuntu-latest
     steps:
-      - name: Llamar endpoint /api/sync
+      - name: Sync con football-data.org
         run: |
-          curl -f -X GET "${{ secrets.APP_URL }}/api/sync" \
-            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}"
+          response=$(curl -s -o /dev/null -w "%{http_code}" -X GET \
+            "${{ secrets.APP_URL }}/api/sync" \
+            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}")
+          echo "HTTP status: $response"
+          if [ "$response" != "200" ]; then
+            echo "Sync falló con status $response"
+            exit 1
+          fi
+          echo "Sync OK"
