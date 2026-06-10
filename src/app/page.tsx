@@ -26,9 +26,7 @@ export default function Home() {
     ]);
     setParticipants(pRes.participants ?? []);
     setResults(rRes.results ?? null);
-    setSettings(rRes.settings ? {
-      adminPinHash: rRes.settings.admin_pin_hash,
-    } : null);
+    setSettings(rRes.settings ? { adminPinHash: rRes.settings.admin_pin_hash } : null);
     setLoading(false);
   }, []);
 
@@ -36,9 +34,7 @@ export default function Home() {
 
   useEffect(() => {
     const channel = supabase.channel("resultados-changes")
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "resultados" }, () => {
-        fetchAll();
-      })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "resultados" }, () => fetchAll())
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [fetchAll]);
@@ -51,44 +47,44 @@ export default function Home() {
   ];
 
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center text-slate-400 text-lg">
+    <div className="min-h-screen flex items-center justify-center text-slate-400 text-xl">
       Cargando…
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800">
-      <div className="bg-gradient-to-r from-emerald-700 via-teal-600 to-emerald-600 text-white">
-        <div className="max-w-6xl mx-auto px-6 py-6">
-          <h1 className="text-3xl font-extrabold">⚽ Prode Mundial 2026</h1>
-          <p className="text-emerald-100 text-base mt-1">Tablero en vivo · {participants.length} participantes</p>
+    <div className="min-h-screen bg-slate-100 text-slate-800">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-emerald-700 via-teal-600 to-emerald-600 text-white shadow-lg">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-5 pb-2">
+          <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight">⚽ Prode Mundial 2026</h1>
+          <p className="text-emerald-100 text-sm sm:text-base mt-1">Tablero en vivo · {participants.length} participantes</p>
         </div>
-        <div className="max-w-6xl mx-auto px-6 flex gap-1 overflow-x-auto">
+        {/* Tabs */}
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 flex overflow-x-auto scrollbar-hide">
           {tabs.map(([k, label]) => (
             <button key={k} onClick={() => setTab(k)}
-              className={`px-5 py-3 text-base font-medium rounded-t-lg whitespace-nowrap transition ${tab === k ? "bg-slate-50 text-emerald-700" : "text-emerald-50 hover:bg-white/10"}`}>
+              className={`flex-shrink-0 px-4 sm:px-6 py-3 sm:py-4 text-sm sm:text-base font-semibold rounded-t-xl whitespace-nowrap transition-all mr-1 ${
+                tab === k
+                  ? "bg-slate-100 text-emerald-700 shadow-sm"
+                  : "text-emerald-100 hover:bg-white/10"
+              }`}>
               {label}
             </button>
           ))}
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-6 py-8">
+      {/* Content */}
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
         {tab === "tabla" && results && settings && (
-          <Leaderboard
-            participants={participants} results={results}
-            onSelect={setSel} onRefresh={fetchAll}
-          />
+          <Leaderboard participants={participants} results={results} onSelect={setSel} onRefresh={fetchAll} />
         )}
         {tab === "partis" && (
           <Participants participants={participants} onRefresh={fetchAll} />
         )}
         {tab === "admin" && results && settings && (
-          <AdminPanel
-            results={results} settings={settings}
-            unlocked={adminUnlocked} setUnlocked={setAdminUnlocked}
-            onRefresh={fetchAll}
-          />
+          <AdminPanel results={results} settings={settings} unlocked={adminUnlocked} setUnlocked={setAdminUnlocked} onRefresh={fetchAll} />
         )}
         {tab === "reglas" && <Rules />}
       </div>
