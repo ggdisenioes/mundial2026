@@ -94,7 +94,7 @@ export default function Home() {
         {tab === "tabla"  && results && settings && (
           <Leaderboard participants={participants} results={results} onSelect={setSel} onRefresh={fetchAll} />
         )}
-        {tab === "partis" && <Participants participants={participants} onRefresh={fetchAll} />}
+        {tab === "partis" && settings && <Participants participants={participants} settings={settings} onRefresh={fetchAll} />}
         {tab === "admin"  && results && settings && (
           <AdminPanel results={results} settings={settings} unlocked={adminUnlocked} setUnlocked={setAdminUnlocked} onRefresh={fetchAll} />
         )}

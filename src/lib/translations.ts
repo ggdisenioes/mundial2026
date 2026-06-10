@@ -114,6 +114,11 @@ export const T = {
     apiOnline:        (rem: number, lim: number) => `API Online · ${rem}/${lim} req`,
     apiOffline:       (reason: string) => `API Offline · ${reason}`,
 
+    // Participants PIN gate
+    uploadLocked:     "Subida de pronósticos protegida",
+    uploadUnlock:     "🔐 Acceder para subir",
+    uploadUnlockDesc: "Solo pueden subir pronósticos quienes conocen el PIN",
+
     // PinModal
     adminAccess:      "🔐 Acceso Admin",
     changePinTitle:   "🔑 Cambiar PIN",
@@ -240,6 +245,11 @@ export const T = {
     checkingApi:      "Checking API…",
     apiOnline:        (rem: number, lim: number) => `API Online · ${rem}/${lim} req`,
     apiOffline:       (reason: string) => `API Offline · ${reason}`,
+
+    // Participants PIN gate
+    uploadLocked:     "Prediction upload is protected",
+    uploadUnlock:     "🔐 Unlock to upload",
+    uploadUnlockDesc: "Only users who know the PIN can upload predictions",
 
     // PinModal
     adminAccess:      "🔐 Admin Access",
