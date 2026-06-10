@@ -26,54 +26,61 @@ export default function Leaderboard({ participants, results, onSelect, onRefresh
     <div className="space-y-4 sm:space-y-5">
       <div className="flex items-start sm:items-center justify-between gap-3">
         <div>
-          <h2 className="text-2xl sm:text-3xl font-bold">Clasificación</h2>
-          {lastUpdate && <p className="text-sm text-slate-400 mt-1">Actualizado: {lastUpdate}</p>}
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-tw-navy">Clasificación</h2>
+          {lastUpdate && <p className="text-sm text-tw-grey mt-1">Actualizado: {lastUpdate}</p>}
         </div>
         <button onClick={onRefresh}
-          className="shrink-0 text-sm sm:text-base text-emerald-600 hover:text-emerald-800 border border-emerald-200 px-4 py-2 rounded-xl hover:bg-emerald-50 font-medium transition-colors">
+          className="shrink-0 text-sm sm:text-base border-2 border-tw-navy/20 text-tw-navy px-4 py-2 rounded-xl hover:border-tw-green hover:text-tw-navy font-semibold transition-all">
           ↻ Actualizar
         </button>
       </div>
 
       {ranked.length === 0 ? (
-        <div className="text-center py-16 sm:py-24 text-slate-400 bg-white rounded-2xl border">
-          <p className="text-5xl sm:text-6xl mb-4">📋</p>
-          <p className="text-base sm:text-lg">Aún no hay participantes.<br className="sm:hidden" /> Subí los Excel en la pestaña Participantes.</p>
+        <div className="text-center py-16 bg-white rounded-2xl border-2 border-dashed border-tw-grey">
+          <p className="text-5xl mb-4">📋</p>
+          <p className="text-base sm:text-lg text-tw-grey">Aún no hay participantes.<br className="sm:hidden" /> Subí los Excel en Participantes.</p>
         </div>
       ) : (
         <div className="space-y-3">
           {ranked.map(({ p, score }, i) => {
             const medal = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : null;
+            const isTop3 = i < 3;
             return (
               <button key={p.id} onClick={() => onSelect(p)}
-                className="w-full text-left bg-white rounded-2xl shadow-sm border-2 border-transparent hover:border-emerald-300 hover:shadow-md active:scale-[0.99] transition-all p-4 sm:p-5 flex items-center gap-3 sm:gap-5">
-                {/* Posición */}
-                <div className="shrink-0 w-10 sm:w-12 text-center">
+                className={`w-full text-left rounded-2xl border-2 transition-all active:scale-[0.99] p-4 sm:p-5 flex items-center gap-3 sm:gap-5 ${
+                  isTop3
+                    ? "bg-white border-tw-navy/10 hover:border-tw-green shadow-sm hover:shadow-md"
+                    : "bg-white border-tw-grey/30 hover:border-tw-green hover:shadow-sm"
+                }`}>
+                {/* Pos */}
+                <div className="shrink-0 w-10 sm:w-12 flex items-center justify-center">
                   {medal
                     ? <span className="text-2xl sm:text-3xl">{medal}</span>
-                    : <span className="text-lg sm:text-xl font-bold text-slate-400">{i + 1}</span>
+                    : <span className="text-base sm:text-lg font-bold text-tw-grey">{i + 1}</span>
                   }
                 </div>
-                {/* Nombre + desglose */}
+                {/* Info */}
                 <div className="flex-1 min-w-0">
-                  <div className="font-bold text-base sm:text-xl truncate">{p.nombre}</div>
+                  <div className="font-bold text-base sm:text-xl text-tw-navy truncate">{p.nombre}</div>
                   <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1">
                     {[
-                      { k: "P1", v: score.p1 },
+                      { k: "P1",      v: score.p1 },
                       { k: "P2 🇪🇸", v: score.p2 },
-                      { k: "P3", v: score.p3 },
-                      { k: "P4", v: score.p4 },
+                      { k: "P3",      v: score.p3 },
+                      { k: "P4",      v: score.p4 },
                     ].map(({ k, v }) => (
-                      <span key={k} className="text-xs sm:text-sm text-slate-400">
-                        {k}: <strong className="text-slate-600">{v}</strong>
+                      <span key={k} className="text-xs sm:text-sm text-tw-grey">
+                        {k}: <strong className="text-tw-navy/80">{v}</strong>
                       </span>
                     ))}
                   </div>
                 </div>
-                {/* Total */}
+                {/* Score */}
                 <div className="shrink-0 text-right">
-                  <div className="text-3xl sm:text-4xl font-extrabold text-emerald-700 leading-none">{score.total}</div>
-                  <div className="text-xs text-slate-400 mt-0.5">pts</div>
+                  <div className={`font-extrabold leading-none ${isTop3 ? "text-4xl sm:text-5xl text-tw-navy" : "text-3xl sm:text-4xl text-tw-navy/80"}`}>
+                    {score.total}
+                  </div>
+                  <div className="text-xs text-tw-grey mt-0.5">pts</div>
                 </div>
               </button>
             );

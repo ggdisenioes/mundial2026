@@ -6,6 +6,7 @@ import Participants from "@/components/Participants";
 import AdminPanel from "@/components/AdminPanel";
 import Rules from "@/components/Rules";
 import DetailModal from "@/components/DetailModal";
+import ApiStatus from "@/components/ApiStatus";
 import { supabase } from "@/lib/supabase";
 
 type Tab = "tabla" | "partis" | "admin" | "reglas";
@@ -34,60 +35,92 @@ export default function Home() {
 
   useEffect(() => {
     const channel = supabase.channel("resultados-changes")
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "resultados" }, () => fetchAll())
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "resultados" }, fetchAll)
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [fetchAll]);
 
   const tabs: [Tab, string][] = [
-    ["tabla", "🏆 Clasificación"],
+    ["tabla",  "🏆 Clasificación"],
     ["partis", "👥 Participantes"],
-    ["admin", "📋 Resultados"],
+    ["admin",  "📋 Resultados"],
     ["reglas", "📖 Reglas"],
   ];
 
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center text-slate-400 text-xl">
-      Cargando…
+    <div className="min-h-screen flex items-center justify-center bg-tw-navy">
+      <div className="flex flex-col items-center gap-4">
+        <div className="w-8 h-8 border-4 border-tw-green border-t-transparent rounded-full animate-spin" />
+        <span className="text-white/60 text-base">Cargando…</span>
+      </div>
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-800">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-emerald-700 via-teal-600 to-emerald-600 text-white shadow-lg">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-5 pb-2">
-          <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight">⚽ Prode Mundial 2026</h1>
-          <p className="text-emerald-100 text-sm sm:text-base mt-1">Tablero en vivo · {participants.length} participantes</p>
+    <div className="min-h-screen bg-tw-light">
+      {/* ── Header ── */}
+      <header className="bg-tw-navy shadow-xl">
+        {/* Top bar: logo + status */}
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-4 pb-3 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3 sm:gap-5 min-w-0">
+            {/* Logo */}
+            <img
+              src="/logo-twinco.jpg"
+              alt="Twinco Capital"
+              className="h-8 sm:h-10 w-auto rounded object-contain shrink-0"
+            />
+            {/* Title */}
+            <div className="min-w-0">
+              <h1 className="text-lg sm:text-2xl font-extrabold text-white leading-tight tracking-tight">
+                ⚽ Prode Mundial 2026
+              </h1>
+              <p className="text-tw-green/80 text-xs sm:text-sm mt-0.5">
+                {participants.length} participantes · Tablero en vivo
+              </p>
+            </div>
+          </div>
+          {/* API Status */}
+          <div className="shrink-0 hidden sm:block">
+            <ApiStatus />
+          </div>
         </div>
+
+        {/* API status mobile */}
+        <div className="sm:hidden px-4 pb-2">
+          <ApiStatus />
+        </div>
+
         {/* Tabs */}
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 flex overflow-x-auto scrollbar-hide">
+        <nav className="max-w-5xl mx-auto px-4 sm:px-6 flex overflow-x-auto scrollbar-hide gap-1">
           {tabs.map(([k, label]) => (
-            <button key={k} onClick={() => setTab(k)}
-              className={`flex-shrink-0 px-4 sm:px-6 py-3 sm:py-4 text-sm sm:text-base font-semibold rounded-t-xl whitespace-nowrap transition-all mr-1 ${
+            <button
+              key={k}
+              onClick={() => setTab(k)}
+              className={`shrink-0 px-4 sm:px-6 py-3 text-sm sm:text-base font-semibold rounded-t-xl whitespace-nowrap transition-all ${
                 tab === k
-                  ? "bg-slate-100 text-emerald-700 shadow-sm"
-                  : "text-emerald-100 hover:bg-white/10"
-              }`}>
+                  ? "bg-tw-light text-tw-navy shadow-sm"
+                  : "text-white/60 hover:text-white hover:bg-white/10"
+              }`}
+            >
               {label}
             </button>
           ))}
-        </div>
-      </div>
+        </nav>
+      </header>
 
-      {/* Content */}
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
-        {tab === "tabla" && results && settings && (
+      {/* ── Content ── */}
+      <main className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+        {tab === "tabla"  && results && settings && (
           <Leaderboard participants={participants} results={results} onSelect={setSel} onRefresh={fetchAll} />
         )}
         {tab === "partis" && (
           <Participants participants={participants} onRefresh={fetchAll} />
         )}
-        {tab === "admin" && results && settings && (
+        {tab === "admin"  && results && settings && (
           <AdminPanel results={results} settings={settings} unlocked={adminUnlocked} setUnlocked={setAdminUnlocked} onRefresh={fetchAll} />
         )}
         {tab === "reglas" && <Rules />}
-      </div>
+      </main>
 
       {sel && results && settings && (
         <DetailModal p={sel} results={results} onClose={() => setSel(null)} />
