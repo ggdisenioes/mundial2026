@@ -63,7 +63,7 @@ export default function AdminPanel({ results, settings, unlocked, setUnlocked, o
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 max-h-[480px] overflow-y-auto pr-1">
           {MATCHES.map(([h, a, g, date, time], i) => (
             <div key={i} className="flex flex-col bg-tw-light rounded-xl px-3 py-2">
-              <span className="text-xs text-tw-grey/70 font-mono mb-1">{date} · {time}h</span>
+              <span className="text-xs text-tw-navy font-mono font-semibold mb-1">{date} · {time}h</span>
               <div className="flex items-center gap-2">
                 <span className="text-tw-grey font-mono text-sm w-5 shrink-0">{g}</span>
                 <span className="truncate text-sm sm:text-base text-tw-navy flex-1 min-w-0">{TEAMS[h]?.flag} {h}</span>
