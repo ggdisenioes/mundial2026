@@ -43,6 +43,17 @@ export default function Home() {
     return () => { supabase.removeChannel(ch); };
   }, [fetchAll]);
 
+  // Auto-sync de resultados: el backend se limita solo (1 llamada real cada
+  // 10 min); cuando guarda cambios, el canal Realtime de arriba refresca la UI.
+  useEffect(() => {
+    const ping = () => { fetch("/api/sync/auto").catch(() => {}); };
+    ping();
+    const iv = setInterval(ping, 5 * 60_000);
+    const onVis = () => { if (document.visibilityState === "visible") ping(); };
+    document.addEventListener("visibilitychange", onVis);
+    return () => { clearInterval(iv); document.removeEventListener("visibilitychange", onVis); };
+  }, []);
+
   const tabs: [Tab, string][] = [
     ["tabla",  t.tabLeaderboard],
     ["partis", t.tabParticipants],
