@@ -61,17 +61,20 @@ export default function AdminPanel({ results, settings, unlocked, setUnlocked, o
       <div className="bg-white rounded-2xl border-2 border-tw-grey/20 shadow-sm p-4 sm:p-6">
         <h3 className="font-bold text-lg sm:text-xl text-tw-navy mb-4">{t.groupResults}</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 max-h-[480px] overflow-y-auto pr-1">
-          {MATCHES.map(([h, a, g], i) => (
-            <div key={i} className="flex items-center gap-2 bg-tw-light rounded-xl px-3 py-2.5">
-              <span className="text-tw-grey font-mono text-sm w-5 shrink-0">{g}</span>
-              <span className="truncate text-sm sm:text-base text-tw-navy flex-1 min-w-0">{TEAMS[h]?.flag} {h}</span>
-              {unlocked ? (
-                <input value={scores[i]} onChange={e => { const ns=[...scores]; ns[i]=e.target.value; setScores(ns); }} placeholder="0-0"
-                  className="w-16 sm:w-20 border-2 border-tw-grey/40 rounded-lg px-2 py-1.5 font-mono text-center text-base font-bold focus:outline-none focus:border-tw-green bg-white" />
-              ) : (
-                <span className={`w-16 sm:w-20 text-center font-mono font-bold text-base px-2 py-1.5 rounded-lg ${scores[i] ? "bg-tw-navy text-tw-green" : "text-tw-grey"}`}>{scores[i] || "—"}</span>
-              )}
-              <span className="truncate text-sm sm:text-base text-tw-navy flex-1 min-w-0 text-right">{a} {TEAMS[a]?.flag}</span>
+          {MATCHES.map(([h, a, g, date, time], i) => (
+            <div key={i} className="flex flex-col bg-tw-light rounded-xl px-3 py-2">
+              <span className="text-xs text-tw-grey/70 font-mono mb-1">{date} · {time}h</span>
+              <div className="flex items-center gap-2">
+                <span className="text-tw-grey font-mono text-sm w-5 shrink-0">{g}</span>
+                <span className="truncate text-sm sm:text-base text-tw-navy flex-1 min-w-0">{TEAMS[h]?.flag} {h}</span>
+                {unlocked ? (
+                  <input value={scores[i]} onChange={e => { const ns=[...scores]; ns[i]=e.target.value; setScores(ns); }} placeholder="0-0"
+                    className="w-16 sm:w-20 border-2 border-tw-grey/40 rounded-lg px-2 py-1.5 font-mono text-center text-base font-bold focus:outline-none focus:border-tw-green bg-white" />
+                ) : (
+                  <span className={`w-16 sm:w-20 text-center font-mono font-bold text-base px-2 py-1.5 rounded-lg ${scores[i] ? "bg-tw-navy text-tw-green" : "text-tw-grey"}`}>{scores[i] || "—"}</span>
+                )}
+                <span className="truncate text-sm sm:text-base text-tw-navy flex-1 min-w-0 text-right">{a} {TEAMS[a]?.flag}</span>
+              </div>
             </div>
           ))}
         </div>
