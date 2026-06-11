@@ -10,6 +10,29 @@ interface Props { results: Results; settings: Settings; unlocked: boolean; setUn
 const inputCls = "w-full border-2 border-tw-grey/40 rounded-xl px-4 py-3 text-base focus:outline-none focus:border-tw-green bg-white transition-colors";
 const readCls  = "w-full border-2 border-tw-grey/20 rounded-xl px-4 py-3 text-base bg-tw-light text-tw-navy";
 
+// Partidos ordenados cronológicamente y agrupados por día. Se conserva el
+// índice original de MATCHES porque scores[] se indexa por esa posición.
+const sortKey = ([, , , date, time]: (typeof MATCHES)[number]) => {
+  const [d, mo] = date.split("/").map(Number);
+  const [hh, mm] = time.split(":").map(Number);
+  return ((mo * 31 + d) * 24 + hh) * 60 + mm;
+};
+const MATCHES_BY_DAY = (() => {
+  const ordered = MATCHES.map((m, i) => ({ m, i })).sort((a, b) => sortKey(a.m) - sortKey(b.m));
+  const days: { date: string; items: typeof ordered }[] = [];
+  ordered.forEach(it => {
+    const last = days[days.length - 1];
+    if (last?.date === it.m[3]) last.items.push(it);
+    else days.push({ date: it.m[3], items: [it] });
+  });
+  return days;
+})();
+const dayLabel = (date: string) => {
+  const [d, mo] = date.split("/").map(Number);
+  const wd = new Date(2026, mo - 1, d).toLocaleDateString("es-ES", { weekday: "long" });
+  return `${wd.charAt(0).toUpperCase()}${wd.slice(1)} ${date}`;
+};
+
 export default function AdminPanel({ results, settings, unlocked, setUnlocked, onRefresh }: Props) {
   const { t } = useT();
   const [showPinModal,  setShowPinModal]  = useState(false);
@@ -60,20 +83,28 @@ export default function AdminPanel({ results, settings, unlocked, setUnlocked, o
       {/* Grupos */}
       <div className="bg-white rounded-2xl border-2 border-tw-grey/20 shadow-sm p-4 sm:p-6">
         <h3 className="font-bold text-lg sm:text-xl text-tw-navy mb-4">{t.groupResults}</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 max-h-[480px] overflow-y-auto pr-1">
-          {MATCHES.map(([h, a, g, date, time], i) => (
-            <div key={i} className="flex flex-col bg-tw-light rounded-xl px-3 py-2">
-              <span className="text-xs text-tw-navy font-mono font-semibold mb-1">{date} · {time}h</span>
-              <div className="flex items-center gap-2">
-                <span className="text-tw-grey font-mono text-sm w-5 shrink-0">{g}</span>
-                <span className="truncate text-sm sm:text-base text-tw-navy flex-1 min-w-0">{TEAMS[h]?.flag} {h}</span>
-                {unlocked ? (
-                  <input value={scores[i]} onChange={e => { const ns=[...scores]; ns[i]=e.target.value; setScores(ns); }} placeholder="0-0"
-                    className="w-16 sm:w-20 border-2 border-tw-grey/40 rounded-lg px-2 py-1.5 font-mono text-center text-base font-bold focus:outline-none focus:border-tw-green bg-white" />
-                ) : (
-                  <span className={`w-16 sm:w-20 text-center font-mono font-bold text-base px-2 py-1.5 rounded-lg ${scores[i] ? "bg-tw-navy text-tw-green" : "text-tw-grey"}`}>{scores[i] || "—"}</span>
-                )}
-                <span className="truncate text-sm sm:text-base text-tw-navy flex-1 min-w-0 text-right">{a} {TEAMS[a]?.flag}</span>
+        <div className="max-h-[480px] overflow-y-auto pr-1 space-y-4">
+          {MATCHES_BY_DAY.map(({ date, items }) => (
+            <div key={date}>
+              <div className="sticky top-0 z-10 bg-white py-1.5">
+                <span className="inline-block bg-tw-navy text-tw-green text-sm font-bold px-3 py-1 rounded-lg">📅 {dayLabel(date)}</span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 mt-1.5">
+                {items.map(({ m: [h, a, g, , time], i }) => (
+                  <div key={i} className="flex flex-col bg-tw-light rounded-xl px-3 py-2">
+                    <span className="text-xs text-tw-navy font-mono font-semibold mb-1">🕐 {time}h · Grupo {g}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="truncate text-sm sm:text-base text-tw-navy flex-1 min-w-0">{TEAMS[h]?.flag} {h}</span>
+                      {unlocked ? (
+                        <input value={scores[i]} onChange={e => { const ns=[...scores]; ns[i]=e.target.value; setScores(ns); }} placeholder="0-0"
+                          className="w-16 sm:w-20 border-2 border-tw-grey/40 rounded-lg px-2 py-1.5 font-mono text-center text-base font-bold focus:outline-none focus:border-tw-green bg-white" />
+                      ) : (
+                        <span className={`w-16 sm:w-20 text-center font-mono font-bold text-base px-2 py-1.5 rounded-lg ${scores[i] ? "bg-tw-navy text-tw-green" : "text-tw-grey"}`}>{scores[i] || "—"}</span>
+                      )}
+                      <span className="truncate text-sm sm:text-base text-tw-navy flex-1 min-w-0 text-right">{a} {TEAMS[a]?.flag}</span>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           ))}
