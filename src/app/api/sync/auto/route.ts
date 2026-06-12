@@ -36,6 +36,11 @@ export async function GET() {
     return NextResponse.json({ ok: true, ...summary, synced_at: new Date().toISOString() });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : "Unknown error";
+    // Roll back updated_at so the next ping can retry immediately
+    await supabaseAdmin
+      .from("resultados")
+      .update({ updated_at: new Date(0).toISOString() })
+      .eq("id", 1);
     return NextResponse.json({ ok: false, error: msg }, { status: 500 });
   }
 }
