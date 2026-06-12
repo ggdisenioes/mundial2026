@@ -1,0 +1,19 @@
+name: Auto-sync resultados
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping sync endpoint
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${{ secrets.SITE_URL }}/api/sync/auto")
+          echo "HTTP status: $STATUS"
+          if [ "$STATUS" -ge 500 ]; then
+            echo "Sync endpoint returned error $STATUS"
+            exit 1
+          fi
