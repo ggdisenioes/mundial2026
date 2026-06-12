@@ -1,16 +1,14 @@
-import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { hashPin } from "@/lib/scoring";
 import { runSync } from "@/lib/sync";
 
 export const dynamic = "force-dynamic";
 
-export async function POST(req: NextRequest) {
-  const { pin } = await req.json();
-  const { data: set } = await supabase.from("settings").select("admin_pin_hash").single();
-  if (set?.admin_pin_hash && hashPin(String(pin)) !== set.admin_pin_hash) {
-    return NextResponse.json({ error: "PIN incorrecto" }, { status: 403 });
+// Force sync: bypasses throttle. No PIN needed — equivalent to auto-sync
+// but immediate. Only writes scores from the public football-data.org API.
+export async function POST() {
+  if (!process.env.FOOTBALLDATA_KEY) {
+    return NextResponse.json({ ok: false, error: "FOOTBALLDATA_KEY no configurada" }, { status: 500 });
   }
 
   try {
