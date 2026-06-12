@@ -28,13 +28,17 @@ create table if not exists resultados (
 -- Insertar fila inicial si no existe
 insert into resultados (id) values (1) on conflict do nothing;
 
--- Tabla de settings (PIN, modo España)
+-- Tabla de settings (PIN, modo España, estado de sync)
 create table if not exists settings (
   id int primary key default 1 check (id = 1),
   spain_mode text not null default 'replace',
-  admin_pin_hash text not null default ''
+  admin_pin_hash text not null default '',
+  sync_meta jsonb not null default '{}'::jsonb
 );
 insert into settings (id) values (1) on conflict do nothing;
+
+-- Migración: añadir sync_meta si ya existe la tabla sin esa columna
+alter table settings add column if not exists sync_meta jsonb not null default '{}'::jsonb;
 
 -- RLS: lectura pública en todo
 alter table participantes enable row level security;

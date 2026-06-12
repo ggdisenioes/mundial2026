@@ -6,7 +6,7 @@ import { hashPin } from "@/lib/scoring";
 export async function GET() {
   const [res, set] = await Promise.all([
     supabase.from("resultados").select("*").single(),
-    supabase.from("settings").select("*").single(),
+    supabase.from("settings").select("admin_pin_hash, sync_meta").single(),
   ]);
   if (res.error) return NextResponse.json({ error: res.error.message }, { status: 500 });
   return NextResponse.json({ results: res.data, settings: set.data });

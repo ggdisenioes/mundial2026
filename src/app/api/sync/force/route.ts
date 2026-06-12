@@ -1,16 +1,16 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { supabase } from "@/lib/supabase";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { runSync, isThrottled } from "@/lib/sync";
+import { hashPin } from "@/lib/scoring";
+import { runSync } from "@/lib/sync";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
-  if (!process.env.FOOTBALLDATA_KEY) {
-    return NextResponse.json({ ok: false, skipped: "no-key" });
-  }
-
-  if (await isThrottled()) {
-    return NextResponse.json({ ok: true, skipped: "throttled" });
+export async function POST(req: NextRequest) {
+  const { pin } = await req.json();
+  const { data: set } = await supabase.from("settings").select("admin_pin_hash").single();
+  if (set?.admin_pin_hash && hashPin(String(pin)) !== set.admin_pin_hash) {
+    return NextResponse.json({ error: "PIN incorrecto" }, { status: 403 });
   }
 
   try {
@@ -18,7 +18,6 @@ export async function GET() {
     return NextResponse.json({ ok: true, ...summary });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : "Unknown error";
-    // Save error to sync_meta so it's visible in the admin panel
     await supabaseAdmin
       .from("settings")
       .update({ sync_meta: { last_at: new Date().toISOString(), ok: false, msg, played: 0 } })

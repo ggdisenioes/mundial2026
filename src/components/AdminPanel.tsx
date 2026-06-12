@@ -41,9 +41,20 @@ export default function AdminPanel({ results, settings, unlocked, setUnlocked, o
   const [msg,    setMsg]    = useState("");
   const [pin,    setPin]    = useState("");
 
-  const [scores,   setScores]   = useState<string[]>(results.scores.map(s => s ? `${s.h}-${s.a}` : ""));
-  const [knockout, setKnockout] = useState({ ...results.knockout });
-  const [bonus,    setBonus]    = useState({ ...results.bonus });
+  const [scores,    setScores]    = useState<string[]>(results.scores.map(s => s ? `${s.h}-${s.a}` : ""));
+  const [knockout,  setKnockout]  = useState({ ...results.knockout });
+  const [bonus,     setBonus]     = useState({ ...results.bonus });
+  const [syncing,   setSyncing]   = useState(false);
+  const [syncMsg,   setSyncMsg]   = useState("");
+
+  async function handleForceSync() {
+    setSyncing(true); setSyncMsg("");
+    const res = await fetch("/api/sync/force", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ pin }) });
+    const data = await res.json();
+    if (res.ok) { setSyncMsg(`✅ ${data.played} partidos cargados`); onRefresh(); }
+    else setSyncMsg(`❌ ${data.error}`);
+    setSyncing(false);
+  }
 
   async function handleSave() {
     setSaving(true); setMsg("");
@@ -79,6 +90,37 @@ export default function AdminPanel({ results, settings, unlocked, setUnlocked, o
           )}
         </div>
       </div>
+
+      {/* Estado del sync automático */}
+      {(() => {
+        const sm = settings.syncMeta;
+        const lastAt = sm?.last_at ? new Date(sm.last_at).toLocaleString("es-ES", { dateStyle: "short", timeStyle: "short" }) : null;
+        return (
+          <div className={`rounded-2xl border-2 p-4 flex flex-col sm:flex-row sm:items-center gap-3 justify-between ${sm?.ok === false ? "border-red-300 bg-red-50" : "border-tw-grey/20 bg-white"}`}>
+            <div className="flex items-center gap-3">
+              <span className={`w-3 h-3 rounded-full shrink-0 ${sm?.ok === true ? "bg-tw-green" : sm?.ok === false ? "bg-red-500" : "bg-tw-grey/40"}`} />
+              <div>
+                <p className="font-semibold text-sm text-tw-navy">
+                  {sm?.ok === true ? "Sync automático activo" : sm?.ok === false ? "Error en último sync" : "Sync pendiente de ejecutar"}
+                </p>
+                <p className="text-xs text-tw-grey mt-0.5">
+                  {sm?.msg || "Esperando primera ejecución…"}
+                  {lastAt && ` · ${lastAt}`}
+                </p>
+              </div>
+            </div>
+            {unlocked && (
+              <div className="flex flex-col gap-1 items-start sm:items-end">
+                <button onClick={handleForceSync} disabled={syncing}
+                  className="text-sm bg-tw-navy text-tw-green px-4 py-2 rounded-xl font-bold hover:opacity-80 disabled:opacity-50 transition-opacity shrink-0">
+                  {syncing ? "Sincronizando…" : "⚡ Sincronizar ahora"}
+                </button>
+                {syncMsg && <p className="text-xs font-medium text-tw-grey">{syncMsg}</p>}
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Grupos */}
       <div className="bg-white rounded-2xl border-2 border-tw-grey/20 shadow-sm p-4 sm:p-6">

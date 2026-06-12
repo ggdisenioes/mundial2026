@@ -30,7 +30,10 @@ export default function Home() {
     ]);
     setParticipants(pRes.participants ?? []);
     setResults(rRes.results ?? null);
-    setSettings(rRes.settings ? { adminPinHash: rRes.settings.admin_pin_hash } : null);
+    setSettings(rRes.settings ? {
+      adminPinHash: rRes.settings.admin_pin_hash,
+      syncMeta: rRes.settings.sync_meta ?? null,
+    } : null);
     setLoading(false);
   }, []);
 
