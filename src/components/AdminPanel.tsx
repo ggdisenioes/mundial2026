@@ -10,6 +10,29 @@ interface Props { results: Results; settings: Settings; unlocked: boolean; setUn
 const inputCls = "w-full border-2 border-tw-grey/40 rounded-xl px-4 py-3 text-base focus:outline-none focus:border-tw-green bg-white transition-colors";
 const readCls  = "w-full border-2 border-tw-grey/20 rounded-xl px-4 py-3 text-base bg-tw-light text-tw-navy";
 
+// Partidos ordenados cronológicamente y agrupados por día. Se conserva el
+// índice original de MATCHES porque scores[] se indexa por esa posición.
+const sortKey = ([, , , date, time]: (typeof MATCHES)[number]) => {
+  const [d, mo] = date.split("/").map(Number);
+  const [hh, mm] = time.split(":").map(Number);
+  return ((mo * 31 + d) * 24 + hh) * 60 + mm;
+};
+const MATCHES_BY_DAY = (() => {
+  const ordered = MATCHES.map((m, i) => ({ m, i })).sort((a, b) => sortKey(a.m) - sortKey(b.m));
+  const days: { date: string; items: typeof ordered }[] = [];
+  ordered.forEach(it => {
+    const last = days[days.length - 1];
+    if (last?.date === it.m[3]) last.items.push(it);
+    else days.push({ date: it.m[3], items: [it] });
+  });
+  return days;
+})();
+const dayLabel = (date: string) => {
+  const [d, mo] = date.split("/").map(Number);
+  const wd = new Date(2026, mo - 1, d).toLocaleDateString("es-ES", { weekday: "long" });
+  return `${wd.charAt(0).toUpperCase()}${wd.slice(1)} ${date}`;
+};
+
 export default function AdminPanel({ results, settings, unlocked, setUnlocked, onRefresh }: Props) {
   const { t } = useT();
   const [showPinModal,  setShowPinModal]  = useState(false);
@@ -18,9 +41,20 @@ export default function AdminPanel({ results, settings, unlocked, setUnlocked, o
   const [msg,    setMsg]    = useState("");
   const [pin,    setPin]    = useState("");
 
-  const [scores,   setScores]   = useState<string[]>(results.scores.map(s => s ? `${s.h}-${s.a}` : ""));
-  const [knockout, setKnockout] = useState({ ...results.knockout });
-  const [bonus,    setBonus]    = useState({ ...results.bonus });
+  const [scores,    setScores]    = useState<string[]>(results.scores.map(s => s ? `${s.h}-${s.a}` : ""));
+  const [knockout,  setKnockout]  = useState({ ...results.knockout });
+  const [bonus,     setBonus]     = useState({ ...results.bonus });
+  const [syncing,   setSyncing]   = useState(false);
+  const [syncMsg,   setSyncMsg]   = useState("");
+
+  async function handleForceSync() {
+    setSyncing(true); setSyncMsg("");
+    const res = await fetch("/api/sync/force", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ pin }) });
+    const data = await res.json();
+    if (res.ok) { setSyncMsg(`✅ ${data.played} partidos cargados`); onRefresh(); }
+    else setSyncMsg(`❌ ${data.error}`);
+    setSyncing(false);
+  }
 
   async function handleSave() {
     setSaving(true); setMsg("");
@@ -57,21 +91,63 @@ export default function AdminPanel({ results, settings, unlocked, setUnlocked, o
         </div>
       </div>
 
+      {/* Estado del sync automático */}
+      {(() => {
+        const sm = settings.syncMeta;
+        const lastAt = sm?.last_at ? new Date(sm.last_at).toLocaleString("es-ES", { dateStyle: "short", timeStyle: "short" }) : null;
+        return (
+          <div className={`rounded-2xl border-2 p-4 flex flex-col sm:flex-row sm:items-center gap-3 justify-between ${sm?.ok === false ? "border-red-300 bg-red-50" : "border-tw-grey/20 bg-white"}`}>
+            <div className="flex items-center gap-3">
+              <span className={`w-3 h-3 rounded-full shrink-0 ${sm?.ok === true ? "bg-tw-green" : sm?.ok === false ? "bg-red-500" : "bg-tw-grey/40"}`} />
+              <div>
+                <p className="font-semibold text-sm text-tw-navy">
+                  {sm?.ok === true ? "Sync automático activo" : sm?.ok === false ? "Error en último sync" : "Sync pendiente de ejecutar"}
+                </p>
+                <p className="text-xs text-tw-grey mt-0.5">
+                  {sm?.msg || "Esperando primera ejecución…"}
+                  {lastAt && ` · ${lastAt}`}
+                </p>
+              </div>
+            </div>
+            {unlocked && (
+              <div className="flex flex-col gap-1 items-start sm:items-end">
+                <button onClick={handleForceSync} disabled={syncing}
+                  className="text-sm bg-tw-navy text-tw-green px-4 py-2 rounded-xl font-bold hover:opacity-80 disabled:opacity-50 transition-opacity shrink-0">
+                  {syncing ? "Sincronizando…" : "⚡ Sincronizar ahora"}
+                </button>
+                {syncMsg && <p className="text-xs font-medium text-tw-grey">{syncMsg}</p>}
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
       {/* Grupos */}
       <div className="bg-white rounded-2xl border-2 border-tw-grey/20 shadow-sm p-4 sm:p-6">
         <h3 className="font-bold text-lg sm:text-xl text-tw-navy mb-4">{t.groupResults}</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 max-h-[480px] overflow-y-auto pr-1">
-          {MATCHES.map(([h, a, g], i) => (
-            <div key={i} className="flex items-center gap-2 bg-tw-light rounded-xl px-3 py-2.5">
-              <span className="text-tw-grey font-mono text-sm w-5 shrink-0">{g}</span>
-              <span className="truncate text-sm sm:text-base text-tw-navy flex-1 min-w-0">{TEAMS[h]?.flag} {h}</span>
-              {unlocked ? (
-                <input value={scores[i]} onChange={e => { const ns=[...scores]; ns[i]=e.target.value; setScores(ns); }} placeholder="0-0"
-                  className="w-16 sm:w-20 border-2 border-tw-grey/40 rounded-lg px-2 py-1.5 font-mono text-center text-base font-bold focus:outline-none focus:border-tw-green bg-white" />
-              ) : (
-                <span className={`w-16 sm:w-20 text-center font-mono font-bold text-base px-2 py-1.5 rounded-lg ${scores[i] ? "bg-tw-navy text-tw-green" : "text-tw-grey"}`}>{scores[i] || "—"}</span>
-              )}
-              <span className="truncate text-sm sm:text-base text-tw-navy flex-1 min-w-0 text-right">{a} {TEAMS[a]?.flag}</span>
+        <div className="max-h-[480px] overflow-y-auto pr-1 space-y-4">
+          {MATCHES_BY_DAY.map(({ date, items }) => (
+            <div key={date}>
+              <div className="sticky top-0 z-10 bg-white py-1.5">
+                <span className="inline-block bg-tw-navy text-tw-green text-sm font-bold px-3 py-1 rounded-lg">📅 {dayLabel(date)}</span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 mt-1.5">
+                {items.map(({ m: [h, a, g, , time], i }) => (
+                  <div key={i} className="flex flex-col bg-tw-light rounded-xl px-3 py-2">
+                    <span className="text-xs text-tw-navy font-mono font-semibold mb-1">🕐 {time}h · Grupo {g}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="truncate text-sm sm:text-base text-tw-navy flex-1 min-w-0">{TEAMS[h]?.flag} {h}</span>
+                      {unlocked ? (
+                        <input value={scores[i]} onChange={e => { const ns=[...scores]; ns[i]=e.target.value; setScores(ns); }} placeholder="0-0"
+                          className="w-16 sm:w-20 border-2 border-tw-grey/40 rounded-lg px-2 py-1.5 font-mono text-center text-base font-bold focus:outline-none focus:border-tw-green bg-white" />
+                      ) : (
+                        <span className={`w-16 sm:w-20 text-center font-mono font-bold text-base px-2 py-1.5 rounded-lg ${scores[i] ? "bg-tw-navy text-tw-green" : "text-tw-grey"}`}>{scores[i] || "—"}</span>
+                      )}
+                      <span className="truncate text-sm sm:text-base text-tw-navy flex-1 min-w-0 text-right">{a} {TEAMS[a]?.flag}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           ))}
         </div>

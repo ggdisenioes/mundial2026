@@ -90,6 +90,14 @@ export interface ParticipantScore {
   bd: ScoreBreakdown;
 }
 
+export interface SyncMeta {
+  last_at: string | null;
+  ok: boolean | null;
+  msg: string;
+  played: number;
+}
+
 export interface Settings {
   adminPinHash: string;
+  syncMeta?: SyncMeta;
 }

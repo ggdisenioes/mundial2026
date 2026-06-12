@@ -6,7 +6,7 @@ export async function GET() {
   const { data, error } = await supabase
     .from("participantes")
     .select("id, nombre, picks, creado")
-    .order("creado", { ascending: true });
+    .order("nombre", { ascending: true });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ participants: data });
 }

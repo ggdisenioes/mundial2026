@@ -30,7 +30,11 @@ export default function Home() {
     ]);
     setParticipants(pRes.participants ?? []);
     setResults(rRes.results ?? null);
-    setSettings(rRes.settings ? { adminPinHash: rRes.settings.admin_pin_hash } : null);
+    const s = rRes.settings;
+    setSettings(s ? {
+      adminPinHash: s.admin_pin_hash ?? "",
+      syncMeta: s.sync_meta ?? undefined,
+    } : { adminPinHash: "" });
     setLoading(false);
   }, []);
 
@@ -42,6 +46,17 @@ export default function Home() {
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [fetchAll]);
+
+  // Auto-sync de resultados: el backend se limita solo (1 llamada real cada
+  // 10 min); cuando guarda cambios, el canal Realtime de arriba refresca la UI.
+  useEffect(() => {
+    const ping = () => { fetch("/api/sync/auto").catch(() => {}); };
+    ping();
+    const iv = setInterval(ping, 5 * 60_000);
+    const onVis = () => { if (document.visibilityState === "visible") ping(); };
+    document.addEventListener("visibilitychange", onVis);
+    return () => { clearInterval(iv); document.removeEventListener("visibilitychange", onVis); };
+  }, []);
 
   const tabs: [Tab, string][] = [
     ["tabla",  t.tabLeaderboard],
@@ -91,7 +106,7 @@ export default function Home() {
       </header>
 
       <main className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
-        {tab === "tabla"  && results && settings && (
+        {tab === "tabla"  && results && (
           <Leaderboard participants={participants} results={results} onSelect={setSel} onRefresh={fetchAll} />
         )}
         {tab === "partis" && settings && <Participants participants={participants} settings={settings} onRefresh={fetchAll} />}
@@ -101,7 +116,7 @@ export default function Home() {
         {tab === "reglas" && <Rules />}
       </main>
 
-      {sel && results && settings && (
+      {sel && results && (
         <DetailModal p={sel} results={results} onClose={() => setSel(null)} />
       )}
     </div>
