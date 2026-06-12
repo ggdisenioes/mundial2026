@@ -21,6 +21,7 @@ export const T = {
     noParticipantsDesc:  "Subí los Excel en Participantes.",
     pts:              "pts",
     p2Label:          "P2 🇪🇸",
+    searchPlaceholder: "Buscar participante…",
 
     // Participants
     uploadTitle:      "Subir pronóstico (.xlsx)",
@@ -153,6 +154,7 @@ export const T = {
     noParticipantsDesc:  "Upload Excel files in Participants.",
     pts:              "pts",
     p2Label:          "P2 🇪🇸",
+    searchPlaceholder: "Search participant…",
 
     // Participants
     uploadTitle:      "Upload prediction (.xlsx)",

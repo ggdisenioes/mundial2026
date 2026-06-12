@@ -2,7 +2,7 @@ import type { TeamAbbr } from "@/types";
 
 export const TEAMS: Record<string, TeamAbbr> = {
   MEX:{name:"México",flag:"🇲🇽"}, ZAF:{name:"Sudáfrica",flag:"🇿🇦"}, KOR:{name:"Corea del Sur",flag:"🇰🇷"}, CZE:{name:"Rep. Checa",flag:"🇨🇿"},
-  CAN:{name:"Canadá",flag:"🇨🇦"}, BIH:{name:"Bosnia",flag:"🇧🇦"}, QAT:{name:"Catar",flag:"🇶🇦"}, SUI:{name:"Suiza",flag:"🇨🇭"},
+  CAN:{name:"Canadá",flag:"🇨🇦"}, BIH:{name:"Bosnia",flag:"🇧🇦"}, QAT:{name:"Qatar",flag:"🇶🇦"}, SUI:{name:"Suiza",flag:"🇨🇭"},
   BRA:{name:"Brasil",flag:"🇧🇷"}, MAR:{name:"Marruecos",flag:"🇲🇦"}, HAI:{name:"Haití",flag:"🇭🇹"}, SCO:{name:"Escocia",flag:"🏴󠁧󠁢󠁳󠁣󠁴󠁿"},
   USA:{name:"Estados Unidos",flag:"🇺🇸"}, PAR:{name:"Paraguay",flag:"🇵🇾"}, AUS:{name:"Australia",flag:"🇦🇺"}, TUR:{name:"Turquía",flag:"🇹🇷"},
   GER:{name:"Alemania",flag:"🇩🇪"}, CUW:{name:"Curazao",flag:"🇨🇼"}, CIV:{name:"C. de Marfil",flag:"🇨🇮"}, ECU:{name:"Ecuador",flag:"🇪🇨"},
