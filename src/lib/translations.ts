@@ -12,6 +12,7 @@ export const T = {
     tabParticipants:  "👥 Participantes",
     tabResults:       "📋 Resultados",
     tabRules:         "📖 Reglas",
+    tabPredictions:   "📊 Predicciones",
 
     // Leaderboard
     leaderboardTitle: "Clasificación",
@@ -145,6 +146,7 @@ export const T = {
     tabParticipants:  "👥 Participants",
     tabResults:       "📋 Results",
     tabRules:         "📖 Rules",
+    tabPredictions:   "📊 Predictions",
 
     // Leaderboard
     leaderboardTitle: "Leaderboard",

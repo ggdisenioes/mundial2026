@@ -1,17 +1,18 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import type { Participant, Results, Settings } from "@/types";
-import Leaderboard   from "@/components/Leaderboard";
-import Participants  from "@/components/Participants";
-import AdminPanel    from "@/components/AdminPanel";
-import Rules         from "@/components/Rules";
-import DetailModal   from "@/components/DetailModal";
-import ApiStatus     from "@/components/ApiStatus";
-import LangSelector  from "@/components/LangSelector";
+import Leaderboard      from "@/components/Leaderboard";
+import Participants     from "@/components/Participants";
+import AdminPanel       from "@/components/AdminPanel";
+import Rules            from "@/components/Rules";
+import DetailModal      from "@/components/DetailModal";
+import ApiStatus        from "@/components/ApiStatus";
+import LangSelector     from "@/components/LangSelector";
+import PredictionsGrid  from "@/components/PredictionsGrid";
 import { supabase }  from "@/lib/supabase";
 import { useT }      from "@/contexts/LangContext";
 
-type Tab = "tabla" | "partis" | "admin" | "reglas";
+type Tab = "tabla" | "partis" | "preds" | "admin" | "reglas";
 
 export default function Home() {
   const { t } = useT();
@@ -61,6 +62,7 @@ export default function Home() {
   const tabs: [Tab, string][] = [
     ["tabla",  t.tabLeaderboard],
     ["partis", t.tabParticipants],
+    ["preds",  t.tabPredictions],
     ["admin",  t.tabResults],
     ["reglas", t.tabRules],
   ];
@@ -110,6 +112,7 @@ export default function Home() {
           <Leaderboard participants={participants} results={results} onSelect={setSel} onRefresh={fetchAll} />
         )}
         {tab === "partis" && settings && <Participants participants={participants} settings={settings} onRefresh={fetchAll} />}
+        {tab === "preds"  && results && <PredictionsGrid participants={participants} results={results} />}
         {tab === "admin"  && results && settings && (
           <AdminPanel results={results} settings={settings} unlocked={adminUnlocked} setUnlocked={setAdminUnlocked} onRefresh={fetchAll} />
         )}
