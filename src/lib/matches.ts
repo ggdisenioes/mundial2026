@@ -77,8 +77,9 @@ export const TEAM_LIST = Object.values(TEAMS).map(t => t.name).sort((a, b) => a.
 
 // football-data.org team names → internal code
 export const FDORG_NAME_TO_CODE: Record<string, string> = {
-  "Mexico": "MEX", "South Africa": "ZAF", "Korea Republic": "KOR", "Korea Rep.": "KOR",
-  "Czech Republic": "CZE", "Czechia": "CZE",
+  "Mexico": "MEX", "South Africa": "ZAF",
+  "Korea Republic": "KOR", "Korea Rep.": "KOR", "Republic of Korea": "KOR", "South Korea": "KOR",
+  "Czech Republic": "CZE", "Czechia": "CZE", "Czech Rep.": "CZE",
   "Canada": "CAN", "Bosnia and Herzegovina": "BIH", "Bosnia-Herzegovina": "BIH", "Qatar": "QAT", "Switzerland": "SUI",
   "Brazil": "BRA", "Morocco": "MAR", "Haiti": "HAI", "Scotland": "SCO",
   "United States": "USA", "USA": "USA", "Paraguay": "PAR", "Australia": "AUS", "Turkey": "TUR", "Türkiye": "TUR",

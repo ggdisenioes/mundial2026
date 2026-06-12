@@ -96,10 +96,18 @@ export async function runSync(): Promise<SyncSummary> {
     const fix = matches.find(m =>
       m.status === "FINISHED" &&
       m.stage === "GROUP_STAGE" &&
-      teamCode(m.homeTeam.name) === home &&
-      teamCode(m.awayTeam.name) === away,
+      (
+        (teamCode(m.homeTeam.name) === home && teamCode(m.awayTeam.name) === away) ||
+        (teamCode(m.homeTeam.name) === away && teamCode(m.awayTeam.name) === home)
+      ),
     );
-    if (fix) return { h: fix.score.fullTime.home ?? 0, a: fix.score.fullTime.away ?? 0 };
+    if (fix) {
+      const normalOrder = teamCode(fix.homeTeam.name) === home;
+      return {
+        h: normalOrder ? (fix.score.fullTime.home ?? 0) : (fix.score.fullTime.away ?? 0),
+        a: normalOrder ? (fix.score.fullTime.away ?? 0) : (fix.score.fullTime.home ?? 0),
+      };
+    }
     return curScores[idx] ?? null;
   });
 
