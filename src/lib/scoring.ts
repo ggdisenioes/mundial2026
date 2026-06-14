@@ -39,6 +39,30 @@ export function computeAutoBonus(scores: (null | { h: number; a: number })[]): {
   return { topTeam: t ? TEAMS[t].name : "", mostConceded: c ? TEAMS[c].name : "" };
 }
 
+export function liveGroupStats(scores: (null | { h: number; a: number })[]): {
+  topTeam: string; topTeamGoals: number;
+  mostConceded: string; mostConcededGoals: number;
+  matchesPlayed: number;
+} {
+  const gf: Record<string, number> = {};
+  const ga: Record<string, number> = {};
+  let played = 0;
+  MATCHES.forEach(([h, a], i) => {
+    const s = scores[i];
+    if (!s) return;
+    played++;
+    gf[h] = (gf[h] || 0) + s.h; ga[h] = (ga[h] || 0) + s.a;
+    gf[a] = (gf[a] || 0) + s.a; ga[a] = (ga[a] || 0) + s.h;
+  });
+  const best = (obj: Record<string, number>) => {
+    let k: string | null = null, v = 0;
+    for (const x in obj) if (obj[x] > v) { v = obj[x]; k = x; }
+    return k ? { name: TEAMS[k]?.name ?? k, goals: v } : { name: "", goals: 0 };
+  };
+  const top = best(gf), con = best(ga);
+  return { topTeam: top.name, topTeamGoals: top.goals, mostConceded: con.name, mostConcededGoals: con.goals, matchesPlayed: played };
+}
+
 // P4 auto-bonus solo se activa cuando terminan los 72 partidos de fase de grupos.
 // Antes de eso, solo puntúan los overrides manuales del admin.
 export function effectiveBonus(results: Results) {

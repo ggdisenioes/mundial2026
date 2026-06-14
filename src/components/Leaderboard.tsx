@@ -1,7 +1,8 @@
 "use client";
 import { useMemo, useState } from "react";
 import type { Participant, Results } from "@/types";
-import { scoreParticipant } from "@/lib/scoring";
+import { scoreParticipant, liveGroupStats } from "@/lib/scoring";
+import { MATCHES } from "@/lib/matches";
 import { useT } from "@/contexts/LangContext";
 
 interface Props {
@@ -24,6 +25,8 @@ export default function Leaderboard({ participants, results, onSelect, onRefresh
       .sort((a, b) => b.score.total - a.score.total),
     [participants, results]
   );
+
+  const stats = useMemo(() => liveGroupStats(results.scores), [results.scores]);
 
   const filtered = useMemo(() => {
     const q = normSearch(query.trim());
@@ -49,6 +52,30 @@ export default function Leaderboard({ participants, results, onSelect, onRefresh
           {t.refresh}
         </button>
       </div>
+
+      {stats.matchesPlayed > 0 && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="bg-white rounded-2xl border-2 border-tw-grey/20 px-4 py-3 flex items-center gap-3">
+            <span className="text-2xl shrink-0">⚽</span>
+            <div className="min-w-0">
+              <p className="text-xs text-tw-grey font-medium uppercase tracking-wide">Más goleador</p>
+              {stats.topTeam
+                ? <p className="font-bold text-tw-navy truncate">{stats.topTeam} <span className="font-normal text-tw-grey">({stats.topTeamGoals} goles)</span></p>
+                : <p className="text-tw-grey text-sm">—</p>}
+            </div>
+          </div>
+          <div className="bg-white rounded-2xl border-2 border-tw-grey/20 px-4 py-3 flex items-center gap-3">
+            <span className="text-2xl shrink-0">🥅</span>
+            <div className="min-w-0">
+              <p className="text-xs text-tw-grey font-medium uppercase tracking-wide">Más goleado</p>
+              {stats.mostConceded
+                ? <p className="font-bold text-tw-navy truncate">{stats.mostConceded} <span className="font-normal text-tw-grey">({stats.mostConcededGoals} goles)</span></p>
+                : <p className="text-tw-grey text-sm">—</p>}
+            </div>
+          </div>
+          <p className="sm:col-span-2 text-xs text-tw-grey text-right -mt-1">{t.liveStatsOf(stats.matchesPlayed, MATCHES.length)}</p>
+        </div>
+      )}
 
       {ranked.length > 0 && (
         <div className="relative">

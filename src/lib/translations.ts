@@ -49,6 +49,9 @@ export const T = {
     pts:              "pts",
     p2Label:          "P2 🇪🇸",
     searchPlaceholder: "Buscar participante…",
+    liveTopScorer:    (team: string, goals: number) => `⚽ Más goleador: ${team} (${goals} goles)`,
+    liveMostConceded: (team: string, goals: number) => `🥅 Más goleado: ${team} (${goals} goles)`,
+    liveStatsOf:      (played: number, total: number) => `Tras ${played}/${total} partidos`,
 
     // Participants
     uploadTitle:      "Subir pronóstico (.xlsx)",
@@ -117,9 +120,9 @@ export const T = {
 
     // Rules
     rulesTitle:       "📖 Reglas de la Porra",
-    p1Title:          "P1 — Pronósticos 1X2 · 69 partidos",
-    p1r1:             "<strong>3 puntos</strong> por cada resultado correcto (1, X o 2)",
-    p1r2:             "Los 3 partidos de España <strong>no cuentan</strong> en P1 — se puntúan en P2",
+    p1Title:          "P1 — Pronósticos 1X2 · 72 partidos",
+    p1r1:             "<strong>3 puntos</strong> por cada resultado correcto (1, X o 2), incluyendo los partidos de España",
+    p1r2:             "Los partidos de España también puntúan en <strong>P2</strong> con marcador exacto (puntos adicionales)",
     p2Title:          "P2 — Marcadores exactos España · 3 partidos",
     p2r1:             "<strong>10 puntos</strong> por marcador exacto (ej: 2-1)",
     p2r2:             "<strong>0 puntos</strong> si el marcador no es exacto",
@@ -209,6 +212,9 @@ export const T = {
     pts:              "pts",
     p2Label:          "P2 🇪🇸",
     searchPlaceholder: "Search participant…",
+    liveTopScorer:    (team: string, goals: number) => `⚽ Top scorer: ${team} (${goals} goals)`,
+    liveMostConceded: (team: string, goals: number) => `🥅 Most conceded: ${team} (${goals} goals)`,
+    liveStatsOf:      (played: number, total: number) => `After ${played}/${total} matches`,
 
     // Participants
     uploadTitle:      "Upload prediction (.xlsx)",
@@ -277,9 +283,9 @@ export const T = {
 
     // Rules
     rulesTitle:       "📖 Rules",
-    p1Title:          "P1 — 1X2 Predictions · 69 matches",
-    p1r1:             "<strong>3 points</strong> for each correct result (1, X or 2)",
-    p1r2:             "Spain's 3 group matches <strong>do not count</strong> in P1 — they score in P2",
+    p1Title:          "P1 — 1X2 Predictions · 72 matches",
+    p1r1:             "<strong>3 points</strong> for each correct result (1, X or 2), including Spain matches",
+    p1r2:             "Spain matches also score in <strong>P2</strong> with exact score (additional points)",
     p2Title:          "P2 — Spain exact scores · 3 matches",
     p2r1:             "<strong>10 points</strong> for an exact score (e.g.: 2-1)",
     p2r2:             "<strong>0 points</strong> if the score is not exact",
