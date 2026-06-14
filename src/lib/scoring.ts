@@ -39,8 +39,16 @@ export function computeAutoBonus(scores: (null | { h: number; a: number })[]): {
   return { topTeam: t ? TEAMS[t].name : "", mostConceded: c ? TEAMS[c].name : "" };
 }
 
+// P4 auto-bonus solo se activa cuando terminan los 72 partidos de fase de grupos.
+// Antes de eso, solo puntúan los overrides manuales del admin.
 export function effectiveBonus(results: Results) {
-  const auto = computeAutoBonus(results.scores);
+  const scores = Array.isArray(results.scores) ? results.scores : [];
+  const allGroupsDone =
+    scores.length >= MATCHES.length &&
+    scores.slice(0, MATCHES.length).every(s => s !== null);
+  const auto = allGroupsDone
+    ? computeAutoBonus(scores)
+    : { topTeam: "", mostConceded: "" };
   return {
     topTeam: results.bonus.topTeamOverride || auto.topTeam,
     mostConceded: results.bonus.mostConcededOverride || auto.mostConceded,
@@ -57,14 +65,14 @@ function tierScore(predArr: string[], actualArr: string[], pts: number): PhaseSc
   return { pts: c * pts, hits: c };
 }
 
-// España siempre excluida de P1. P2: marcador exacto = 10pts, cualquier otra cosa = 0pts.
+// P1: los 72 partidos de fase de grupos (incluyendo los de España), 3 pts por 1X2 correcto.
+// P2: marcador exacto de los 3 partidos de España, 10 pts adicionales por acierto exacto.
 export function scoreParticipant(p: Participant, results: Results): ParticipantScore {
   let p1 = 0, p1ok = 0, p1n = 0, p2 = 0;
 
   MATCHES.forEach(([, ,], i) => {
     const s = results.scores[i];
     if (!s) return;
-    if (SPAIN_IDX.includes(i)) return; // España solo puntúa en P2
     p1n++;
     if (p.picks.p1[i] === deriveResult(s.h, s.a)) { p1 += 3; p1ok++; }
   });
