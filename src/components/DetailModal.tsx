@@ -72,8 +72,25 @@ export default function DetailModal({ p, results, onClose }: Props) {
                     <h4 className="font-bold text-sm sm:text-base text-tw-navy/50 mb-2 uppercase tracking-wide">Group {g}</h4>
                     <div className="space-y-1.5">
                       {gms.map(({m,i}) => {
-                        if (SPAIN_IDX.includes(i)) return null;
-                        const s=results.scores[i], pick=p.picks.p1[i];
+                        const isEsp = SPAIN_IDX.includes(i);
+                        const s = results.scores[i];
+                        if (isEsp) {
+                          const espIdx = SPAIN_IDX.indexOf(i);
+                          const pred = p.picks.p2[espIdx];
+                          const pm = pred?.match(/(\d+)\s*[-–:]\s*(\d+)/);
+                          const hit = s && pm && +pm[1] === s.h && +pm[2] === s.a;
+                          return (
+                            <div key={i} className={`flex items-center gap-2 text-sm p-2.5 rounded-xl ${s?(hit?"bg-tw-green/20 border border-tw-green/40":"bg-red-50 border border-red-100"):"bg-white border border-tw-grey/20"}`}>
+                              <span className="w-20 sm:w-24 text-right text-tw-navy text-xs sm:text-sm">{TEAMS[m[0]]?.flag} {m[0]}</span>
+                              <span className="text-tw-grey text-xs">vs</span>
+                              <span className="w-20 sm:w-24 text-tw-navy text-xs sm:text-sm">{m[1]} {TEAMS[m[1]]?.flag}</span>
+                              <span className="text-[9px] font-bold text-tw-green/80 ml-1 shrink-0">P2</span>
+                              <span className={`ml-auto font-mono font-bold text-sm sm:text-base ${hit?"text-tw-navy":s?"text-red-500":"text-tw-grey"}`}>{pred||"—"}</span>
+                              {s&&<span className="text-tw-grey font-mono text-sm">{s.h}-{s.a}</span>}
+                            </div>
+                          );
+                        }
+                        const pick=p.picks.p1[i];
                         const actual=s?deriveResult(s.h,s.a):null, hit=actual&&pick===actual;
                         return (
                           <div key={i} className={`flex items-center gap-2 text-sm p-2.5 rounded-xl ${s?(hit?"bg-tw-green/20 border border-tw-green/40":"bg-red-50 border border-red-100"):"bg-white border border-tw-grey/20"}`}>
