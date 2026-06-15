@@ -15,9 +15,8 @@ jobs:
     steps:
       - name: Sync con football-data.org
         run: |
-          response=$(curl -s -o /dev/null -w "%{http_code}" -X GET \
-            "${{ secrets.APP_URL }}/api/sync" \
-            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}")
+          response=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+            "${{ secrets.APP_URL }}/api/sync/force")
           echo "HTTP status: $response"
           if [ "$response" != "200" ]; then
             echo "Sync falló con status $response"
