@@ -109,15 +109,13 @@ export default function AdminPanel({ results, settings, unlocked, setUnlocked, o
                 </p>
               </div>
             </div>
-            {unlocked && (
-              <div className="flex flex-col gap-1 items-start sm:items-end">
-                <button onClick={handleForceSync} disabled={syncing}
-                  className="text-sm bg-tw-navy text-tw-green px-4 py-2 rounded-xl font-bold hover:opacity-80 disabled:opacity-50 transition-opacity shrink-0">
-                  {syncing ? "Sincronizando…" : "⚡ Sincronizar ahora"}
-                </button>
-                {syncMsg && <p className="text-xs font-medium text-tw-grey">{syncMsg}</p>}
-              </div>
-            )}
+            <div className="flex flex-col gap-1 items-start sm:items-end">
+              <button onClick={handleForceSync} disabled={syncing}
+                className="text-sm bg-tw-navy text-tw-green px-4 py-2 rounded-xl font-bold hover:opacity-80 disabled:opacity-50 transition-opacity shrink-0">
+                {syncing ? "Sincronizando…" : "⚡ Sincronizar ahora"}
+              </button>
+              {syncMsg && <p className="text-xs font-medium text-tw-grey">{syncMsg}</p>}
+            </div>
           </div>
         );
       })()}

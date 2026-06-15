@@ -87,7 +87,7 @@ export const FDORG_NAME_TO_CODE: Record<string, string> = {
   "Ivory Coast": "CIV", "Côte d'Ivoire": "CIV", "Cote d'Ivoire": "CIV",
   "Ecuador": "ECU", "Netherlands": "NED", "Japan": "JPN", "Sweden": "SWE", "Tunisia": "TUN",
   "Belgium": "BEL", "Egypt": "EGY", "Iran": "IRN", "New Zealand": "NZL",
-  "Spain": "ESP", "Cape Verde": "CPV", "Saudi Arabia": "KSA", "Uruguay": "URU",
+  "Spain": "ESP", "Cape Verde": "CPV", "Cabo Verde": "CPV", "Cape Verde Islands": "CPV", "Saudi Arabia": "KSA", "Saudi Arabia U23": "KSA", "Uruguay": "URU",
   "France": "FRA", "Senegal": "SEN", "Iraq": "IRQ", "Norway": "NOR",
   "Argentina": "ARG", "Algeria": "ALG", "Austria": "AUT", "Jordan": "JOR",
   "Portugal": "POR", "DR Congo": "CGO", "Congo DR": "CGO", "Congo": "CGO", "Democratic Republic of Congo": "CGO",
