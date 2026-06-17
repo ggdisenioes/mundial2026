@@ -3,6 +3,8 @@ import { supabase } from "@/lib/supabase";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { hashPin } from "@/lib/scoring";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   const [res, set] = await Promise.all([
     supabase.from("resultados").select("*").single(),
