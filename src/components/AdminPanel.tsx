@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { Results, Settings } from "@/types";
 import { MATCHES, TEAMS, TEAM_LIST } from "@/lib/matches";
 import PinModal from "./PinModal";
