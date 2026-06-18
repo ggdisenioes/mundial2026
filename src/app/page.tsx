@@ -26,8 +26,8 @@ export default function Home() {
 
   const fetchAll = useCallback(async () => {
     const [pRes, rRes] = await Promise.all([
-      fetch("/api/participants").then(r => r.json()),
-      fetch("/api/results").then(r => r.json()),
+      fetch("/api/participants", { cache: "no-store" }).then(r => r.json()),
+      fetch("/api/results",      { cache: "no-store" }).then(r => r.json()),
     ]);
     setParticipants(pRes.participants ?? []);
     setResults(rRes.results ?? null);

@@ -9,7 +9,7 @@ export async function GET() {
 
   const res = await fetch(
     "https://api.football-data.org/v4/competitions/WC/matches?season=2026",
-    { headers: { "X-Auth-Token": key }, next: { revalidate: 0 } }
+    { headers: { "X-Auth-Token": key }, cache: "no-store" }
   );
   if (!res.ok) return NextResponse.json({ error: `API ${res.status}` }, { status: 500 });
 
@@ -17,7 +17,6 @@ export async function GET() {
   const all: { status: string; stage: string; homeTeam: { name: string }; awayTeam: { name: string }; score: { fullTime: { home: number | null; away: number | null } } }[] = data.matches ?? [];
 
   const finished = all.filter(m => m.status === "FINISHED" && m.stage === "GROUP_STAGE");
-  const recent   = all.filter(m => m.stage === "GROUP_STAGE").slice(-10);
 
   const unmatched = finished.filter(m => {
     const h = FDORG_NAME_TO_CODE[m.homeTeam.name];
@@ -25,6 +24,28 @@ export async function GET() {
     if (!h || !a) return true;
     return MATCHES.findIndex(([mh, ma]) => (mh === h && ma === a) || (mh === a && ma === h)) < 0;
   });
+
+  // Show the computed score for every finished group match
+  const matched_scores = finished
+    .filter(m => !unmatched.includes(m))
+    .map(m => {
+      const h = FDORG_NAME_TO_CODE[m.homeTeam.name]!;
+      const a = FDORG_NAME_TO_CODE[m.awayTeam.name]!;
+      const idx = MATCHES.findIndex(([mh, ma]) => (mh === h && ma === a) || (mh === a && ma === h));
+      const [mh] = MATCHES[idx];
+      const normalOrder = mh === h;
+      return {
+        idx,
+        home_code: h,
+        away_code: a,
+        api_home: m.homeTeam.name,
+        api_away: m.awayTeam.name,
+        score: normalOrder
+          ? `${m.score.fullTime.home}-${m.score.fullTime.away}`
+          : `${m.score.fullTime.away}-${m.score.fullTime.home}`,
+      };
+    })
+    .sort((a, b) => a.idx - b.idx);
 
   return NextResponse.json({
     total: all.length,
@@ -36,12 +57,6 @@ export async function GET() {
       home_mapped: FDORG_NAME_TO_CODE[m.homeTeam.name] ?? "❌ NO MAP",
       away_mapped: FDORG_NAME_TO_CODE[m.awayTeam.name] ?? "❌ NO MAP",
     })),
-    recent_group_matches: recent.map(m => ({
-      status: m.status,
-      home: m.homeTeam.name,
-      away: m.awayTeam.name,
-      home_mapped: FDORG_NAME_TO_CODE[m.homeTeam.name] ?? "❌ NO MAP",
-      away_mapped: FDORG_NAME_TO_CODE[m.awayTeam.name] ?? "❌ NO MAP",
-    })),
+    matched_scores,
   });
 }

@@ -70,7 +70,7 @@ export async function runSync(): Promise<SyncSummary> {
   // Fetch – filter by season to avoid mixing 2022 data
   const res = await fetch(`${BASE}/competitions/WC/matches?season=2026`, {
     headers: { "X-Auth-Token": key },
-    next: { revalidate: 0 },
+    cache: "no-store",
   });
   if (!res.ok) {
     const text = await res.text();
