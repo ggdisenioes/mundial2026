@@ -42,11 +42,15 @@ export default function AdminPanel({ results, settings, unlocked, setUnlocked, o
   const [pin,    setPin]    = useState("");
 
   const [scores,    setScores]    = useState<string[]>(results.scores.map(s => s ? `${s.h}-${s.a}` : ""));
-  useEffect(() => {
-    if (!unlocked) setScores(results.scores.map(s => s ? `${s.h}-${s.a}` : ""));
-  }, [results.scores, unlocked]);
   const [knockout,  setKnockout]  = useState({ ...results.knockout });
   const [bonus,     setBonus]     = useState({ ...results.bonus });
+  useEffect(() => {
+    if (!unlocked) {
+      setScores(results.scores.map(s => s ? `${s.h}-${s.a}` : ""));
+      setKnockout({ ...results.knockout });
+      setBonus({ ...results.bonus });
+    }
+  }, [results, unlocked]);
   const [syncing,   setSyncing]   = useState(false);
   const [syncMsg,   setSyncMsg]   = useState("");
 
