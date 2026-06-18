@@ -16,7 +16,7 @@ export async function GET() {
   const data = await res.json();
   const all: { status: string; stage: string; homeTeam: { name: string }; awayTeam: { name: string }; score: { fullTime: { home: number | null; away: number | null } } }[] = data.matches ?? [];
 
-  const finished = all.filter(m => m.status === "FINISHED" && m.stage === "GROUP_STAGE");
+  const finished = all.filter(m => (m.status === "FINISHED" || m.status === "AWARDED") && m.stage === "GROUP_STAGE");
 
   const unmatched = finished.filter(m => {
     const h = FDORG_NAME_TO_CODE[m.homeTeam.name];

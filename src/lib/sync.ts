@@ -94,7 +94,7 @@ export async function runSync(): Promise<SyncSummary> {
   // ── Group stage scores ──────────────────────────────────────────────────
   const scores: (MatchScore | null)[] = MATCHES.map(([home, away], idx) => {
     const fix = matches.find(m =>
-      m.status === "FINISHED" &&
+      (m.status === "FINISHED" || m.status === "AWARDED") &&
       m.stage === "GROUP_STAGE" &&
       (
         (teamCode(m.homeTeam.name) === home && teamCode(m.awayTeam.name) === away) ||
