@@ -47,6 +47,18 @@ export async function GET() {
     })
     .sort((a, b) => a.idx - b.idx);
 
+  // Show ALL group stage matches that are NOT finished (to debug stuck matches)
+  const not_finished_group = all
+    .filter(m => m.stage === "GROUP_STAGE" && m.status !== "FINISHED")
+    .map(m => ({
+      status: m.status,
+      home: m.homeTeam.name,
+      away: m.awayTeam.name,
+      home_mapped: FDORG_NAME_TO_CODE[m.homeTeam.name] ?? "❌",
+      away_mapped: FDORG_NAME_TO_CODE[m.awayTeam.name] ?? "❌",
+      fullTime: m.score.fullTime,
+    }));
+
   return NextResponse.json({
     total: all.length,
     finished_group: finished.length,
@@ -57,6 +69,7 @@ export async function GET() {
       home_mapped: FDORG_NAME_TO_CODE[m.homeTeam.name] ?? "❌ NO MAP",
       away_mapped: FDORG_NAME_TO_CODE[m.awayTeam.name] ?? "❌ NO MAP",
     })),
+    not_finished_group,
     matched_scores,
   });
 }
