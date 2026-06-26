@@ -12,14 +12,15 @@ on:
 jobs:
   sync:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
-      - name: Sync con football-data.org
+      - name: Ping sync endpoint
+        # Best-effort: dispara el sync y NUNCA falla el job (para no enviar
+        # emails de error). El resultado real del sync queda registrado en la
+        # app (settings.sync_meta) y es visible en el panel admin.
         run: |
-          response=$(curl -s -o /dev/null -w "%{http_code}" -L \
-            "${{ secrets.APP_URL }}/api/sync/auto")
-          echo "HTTP status: $response"
-          if [ "$response" -ge 500 ]; then
-            echo "Sync falló con status $response"
-            exit 1
-          fi
-          echo "Sync OK (status $response)"
+          STATUS=$(curl -sL -o /dev/null -w "%{http_code}" \
+            --connect-timeout 15 --max-time 60 \
+            "${{ secrets.APP_URL }}/api/sync/auto" || echo 000)
+          echo "HTTP status: $STATUS"
+          echo "Sync ping enviado (este job nunca falla a propósito)."
