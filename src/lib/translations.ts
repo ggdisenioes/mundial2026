@@ -13,6 +13,23 @@ export const T = {
     tabResults:       "📋 Resultados",
     tabRules:         "📖 Reglas",
     tabPredictions:   "📊 Predicciones",
+    tabBracket:       "⚔️ Eliminatorias",
+
+    // KnockoutBracket
+    koTitle:          "Cuadro de eliminatorias",
+    koSubtitle:       "Resultados de la fase final, en vivo desde la API",
+    koEmpty:          "El cuadro se completará cuando termine la fase de grupos.",
+    koTBD:            "Por definir",
+    koLive:           "EN VIVO",
+    koFT:             "Finalizado",
+    koPenShort:       "pen.",
+    koPens:           (h: number, a: number) => `Penales ${h}-${a}`,
+    koStageL32:       "16avos de final",
+    koStageL16:       "Octavos de final",
+    koStageQF:        "Cuartos de final",
+    koStageSF:        "Semifinales",
+    koStage3P:        "Tercer puesto",
+    koStageFinal:     "Final",
 
     // PredictionsGrid
     gridPhaseGroups:    "Grupos · P1",
@@ -176,6 +193,23 @@ export const T = {
     tabResults:       "📋 Results",
     tabRules:         "📖 Rules",
     tabPredictions:   "📊 Predictions",
+    tabBracket:       "⚔️ Knockout",
+
+    // KnockoutBracket
+    koTitle:          "Knockout bracket",
+    koSubtitle:       "Final-stage results, live from the API",
+    koEmpty:          "The bracket will appear once the group stage is over.",
+    koTBD:            "TBD",
+    koLive:           "LIVE",
+    koFT:             "Full-time",
+    koPenShort:       "pens",
+    koPens:           (h: number, a: number) => `Penalties ${h}-${a}`,
+    koStageL32:       "Round of 32",
+    koStageL16:       "Round of 16",
+    koStageQF:        "Quarter-finals",
+    koStageSF:        "Semi-finals",
+    koStage3P:        "Third place",
+    koStageFinal:     "Final",
 
     // PredictionsGrid
     gridPhaseGroups:    "Groups · P1",

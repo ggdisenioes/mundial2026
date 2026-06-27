@@ -24,10 +24,28 @@ export interface BonusResults {
   mostConcededOverride: string;
 }
 
+// Un partido del cuadro de eliminatorias, tal como lo trae la API.
+export interface BracketMatch {
+  stage: string;        // LAST_32 | LAST_16 | QUARTER_FINALS | SEMI_FINALS | THIRD_PLACE | FINAL
+  utcDate: string;      // ISO en UTC (la UI lo pasa a hora peninsular)
+  status: string;       // SCHEDULED | TIMED | IN_PLAY | PAUSED | FINISHED | AWARDED
+  home: string | null;  // código interno (TEAMS) o null si aún no está definido
+  away: string | null;
+  homeName: string;     // nombre para mostrar (mapeado o el de la API)
+  awayName: string;
+  homeGoals: number | null;
+  awayGoals: number | null;
+  winner: "HOME_TEAM" | "AWAY_TEAM" | "DRAW" | null;
+  penHome: number | null;
+  penAway: number | null;
+  duration: string | null; // REGULAR | EXTRA_TIME | PENALTY_SHOOTOUT
+}
+
 export interface Results {
   scores: (MatchScore | null)[];
   knockout: KnockoutResults;
   bonus: BonusResults;
+  bracket?: BracketMatch[];
   updated_at?: string;
 }
 

@@ -1,18 +1,24 @@
 import { supabaseAdmin } from "./supabase-admin";
 import { MATCHES, TEAMS, FDORG_NAME_TO_CODE } from "./matches";
-import type { MatchScore, KnockoutResults } from "@/types";
+import type { MatchScore, KnockoutResults, BracketMatch } from "@/types";
 
 const BASE = "https://api.football-data.org/v4";
 const THROTTLE_MS = 10 * 60_000; // 10 min
 
+// Rondas eliminatorias, en orden cronológico de disputa.
+const KO_STAGES = ["LAST_32", "LAST_16", "QUARTER_FINALS", "SEMI_FINALS", "THIRD_PLACE", "FINAL"];
+
 interface FdMatch {
   status: string;
   stage: string;
-  homeTeam: { name: string };
-  awayTeam: { name: string };
+  utcDate: string;
+  homeTeam: { name: string | null };
+  awayTeam: { name: string | null };
   score: {
     winner: "HOME_TEAM" | "AWAY_TEAM" | "DRAW" | null;
+    duration?: string | null;
     fullTime: { home: number | null; away: number | null };
+    penalties?: { home: number | null; away: number | null } | null;
   };
 }
 
@@ -23,13 +29,40 @@ interface SyncMeta {
   played: number;
 }
 
-function teamCode(name: string): string | null {
-  return FDORG_NAME_TO_CODE[name] ?? null;
+function teamCode(name: string | null): string | null {
+  return name ? FDORG_NAME_TO_CODE[name] ?? null : null;
 }
 
-function teamName(fdName: string): string {
+function teamName(fdName: string | null): string {
+  if (!fdName) return "";
   const code = teamCode(fdName);
   return code ? TEAMS[code]?.name ?? fdName : fdName;
+}
+
+// Construye el cuadro de eliminatorias a partir de los partidos de la API.
+function buildBracket(matches: FdMatch[]): BracketMatch[] {
+  return matches
+    .filter(m => KO_STAGES.includes(m.stage))
+    .map(m => {
+      const hCode = teamCode(m.homeTeam?.name ?? null);
+      const aCode = teamCode(m.awayTeam?.name ?? null);
+      return {
+        stage: m.stage,
+        utcDate: m.utcDate,
+        status: m.status,
+        home: hCode,
+        away: aCode,
+        homeName: hCode ? TEAMS[hCode].name : (m.homeTeam?.name ?? ""),
+        awayName: aCode ? TEAMS[aCode].name : (m.awayTeam?.name ?? ""),
+        homeGoals: m.score?.fullTime?.home ?? null,
+        awayGoals: m.score?.fullTime?.away ?? null,
+        winner: m.score?.winner ?? null,
+        penHome: m.score?.penalties?.home ?? null,
+        penAway: m.score?.penalties?.away ?? null,
+        duration: m.score?.duration ?? null,
+      };
+    })
+    .sort((a, b) => (a.utcDate < b.utcDate ? -1 : a.utcDate > b.utcDate ? 1 : 0));
 }
 
 const pad = (arr: string[], n: number) =>
@@ -149,6 +182,20 @@ export async function runSync(): Promise<SyncSummary> {
     .update({ scores, knockout, updated_at: new Date().toISOString() })
     .eq("id", 1);
   if (error) throw new Error(error.message);
+
+  // ── Cuadro de eliminatorias (best-effort) ────────────────────────────────
+  // Se persiste por separado: si la columna `bracket` todavía no existe en la
+  // base, el fallo se ignora y NUNCA rompe el sync principal de resultados.
+  try {
+    const bracket = buildBracket(matches);
+    const { error: bErr } = await supabaseAdmin
+      .from("resultados")
+      .update({ bracket })
+      .eq("id", 1);
+    if (bErr) console.warn("sync: bracket no actualizado (¿falta la columna?):", bErr.message);
+  } catch (e) {
+    console.warn("sync: error construyendo el bracket:", e);
+  }
 
   const summary: SyncSummary = { played: scores.filter(Boolean).length, knockout_matches: finished.length };
 

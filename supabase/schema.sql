@@ -22,8 +22,12 @@ create table if not exists resultados (
     "goldenBoot": "", "topEspScorer": "",
     "topTeamOverride": "", "mostConcededOverride": ""
   }'::jsonb,
+  bracket jsonb not null default '[]'::jsonb,
   updated_at timestamptz default now()
 );
+
+-- Migración: añadir bracket (cuadro de eliminatorias) si la tabla ya existe sin esa columna
+alter table resultados add column if not exists bracket jsonb not null default '[]'::jsonb;
 
 -- Insertar fila inicial si no existe
 insert into resultados (id) values (1) on conflict do nothing;

@@ -9,10 +9,11 @@ import DetailModal      from "@/components/DetailModal";
 import ApiStatus        from "@/components/ApiStatus";
 import LangSelector     from "@/components/LangSelector";
 import PredictionsGrid  from "@/components/PredictionsGrid";
+import KnockoutBracket  from "@/components/KnockoutBracket";
 import { supabase }  from "@/lib/supabase";
 import { useT }      from "@/contexts/LangContext";
 
-type Tab = "tabla" | "partis" | "preds" | "admin" | "reglas";
+type Tab = "tabla" | "partis" | "preds" | "bracket" | "admin" | "reglas";
 
 export default function Home() {
   const { t } = useT();
@@ -63,6 +64,7 @@ export default function Home() {
     ["tabla",  t.tabLeaderboard],
     ["partis", t.tabParticipants],
     ["preds",  t.tabPredictions],
+    ["bracket",t.tabBracket],
     ["admin",  t.tabResults],
     ["reglas", t.tabRules],
   ];
@@ -113,6 +115,7 @@ export default function Home() {
         )}
         {tab === "partis" && settings && <Participants participants={participants} settings={settings} onRefresh={fetchAll} />}
         {tab === "preds"  && results && <PredictionsGrid participants={participants} results={results} />}
+        {tab === "bracket" && results && <KnockoutBracket bracket={results.bracket} />}
         {tab === "admin"  && results && settings && (
           <AdminPanel results={results} settings={settings} unlocked={adminUnlocked} setUnlocked={setAdminUnlocked} onRefresh={fetchAll} />
         )}
