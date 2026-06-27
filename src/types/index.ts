@@ -43,6 +43,10 @@ export interface BracketMatch {
   penHome: number | null;
   penAway: number | null;
   duration: string | null; // REGULAR | EXTRA_TIME | PENALTY_SHOOTOUT
+  // Sólo para la Ronda de 32: etiqueta de posición de grupo del slot
+  // ("1A", "2B", "3") para mostrar el cruce aunque el equipo aún no se conozca.
+  homeSlot?: string;
+  awaySlot?: string;
 }
 
 export interface Results {

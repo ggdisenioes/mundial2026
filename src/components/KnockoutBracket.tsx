@@ -1,7 +1,8 @@
 "use client";
-import { useState } from "react";
-import type { BracketMatch } from "@/types";
+import { useMemo, useState } from "react";
+import type { BracketMatch, MatchScore } from "@/types";
 import { TEAMS } from "@/lib/matches";
+import { R32_TEMPLATE, resolveSlot } from "@/lib/standings";
 import { useT } from "@/contexts/LangContext";
 import type { Translations } from "@/lib/translations";
 
@@ -29,6 +30,43 @@ const FEEDERS: Record<string, number[][]> = {
 
 const LINE = "bg-tw-grey/45";
 
+// Etiqueta de un slot de grupo ("1A" → "1.º A", "3" → "3.º (mejor)").
+function slotLabel(slot: string | undefined, t: Translations): string {
+  if (!slot) return "";
+  if (slot === "3") return t.koThird;
+  return `${t.koPos[Number(slot[0])]} ${slot.slice(1)}`;
+}
+
+// Construye la Ronda de 32 (16 partidos) con la plantilla oficial FIFA 2026,
+// completando cada slot con el equipo real (de la API si ya lo asignó, o
+// calculado desde la clasificación de grupos cuando el grupo ya cerró).
+function buildR32(api: BracketMatch[], scores: (MatchScore | null)[]): BracketMatch[] {
+  const apiR32 = api.filter(m => m.stage === "LAST_32").slice().sort((a, b) => a.id - b.id);
+  return R32_TEMPLATE.map(([hs, as_], i) => {
+    const a = apiR32[i];
+    const homeCode = a?.home ?? resolveSlot(hs, scores);
+    const awayCode = a?.away ?? resolveSlot(as_, scores);
+    return {
+      id: a?.id ?? 73 + i,
+      stage: "LAST_32",
+      utcDate: a?.utcDate ?? "",
+      status: a?.status ?? "TIMED",
+      home: homeCode,
+      away: awayCode,
+      homeName: homeCode ? (TEAMS[homeCode]?.name ?? "") : "",
+      awayName: awayCode ? (TEAMS[awayCode]?.name ?? "") : "",
+      homeGoals: a?.homeGoals ?? null,
+      awayGoals: a?.awayGoals ?? null,
+      winner: a?.winner ?? null,
+      penHome: a?.penHome ?? null,
+      penAway: a?.penAway ?? null,
+      duration: a?.duration ?? null,
+      homeSlot: hs,
+      awaySlot: as_,
+    };
+  });
+}
+
 // Horario UTC de la API → encabezado estilo Google en hora peninsular (CEST = UTC+2).
 function fmtHeader(utc: string, t: Translations): string {
   const d = new Date(utc);
@@ -44,17 +82,18 @@ function fmtHeader(utc: string, t: Translations): string {
   return `${t.koWeekdays[cest.getUTCDay()]} ${cest.getUTCDate()}/${cest.getUTCMonth() + 1}, ${time}`;
 }
 
-function Row({ code, name, goals, won, shown, t }: {
-  code: string | null; name: string; goals: number | null; won: boolean; shown: boolean; t: Translations;
+function Row({ code, name, slot, goals, won, shown, t }: {
+  code: string | null; name: string; slot?: string; goals: number | null; won: boolean; shown: boolean; t: Translations;
 }) {
   const flag = code ? TEAMS[code]?.flag : null;
-  const isTBD = !name;
+  const hasTeam = !!name;
+  const label = name || slotLabel(slot, t) || t.koTBD;
   return (
     <div className={`flex items-center justify-between gap-1.5 ${won ? "font-bold" : ""}`}>
       <div className="flex items-center gap-1.5 min-w-0">
         <span className="text-base shrink-0">{flag ?? "🛡️"}</span>
-        <span className={`truncate text-xs sm:text-sm ${isTBD ? "text-tw-grey italic" : "text-tw-navy"}`}>
-          {name || t.koTBD}
+        <span className={`truncate text-xs sm:text-sm ${hasTeam ? "text-tw-navy" : "text-tw-grey italic"}`}>
+          {label}
         </span>
       </div>
       <span className="shrink-0 text-sm font-bold tabular-nums text-tw-navy">
@@ -71,13 +110,13 @@ function Card({ m, t, big = false }: { m: BracketMatch; t: Translations; big?: b
   const hasPen = m.penHome != null && m.penAway != null;
   return (
     <div className={`${big ? "w-60 sm:w-72" : "w-40 sm:w-52"} shrink-0 bg-white rounded-xl border border-tw-grey/25 shadow-sm overflow-hidden`}>
-      <div className="px-2.5 pt-2 pb-1 text-[11px] sm:text-xs text-tw-grey flex items-center justify-between gap-1">
+      <div className="px-2.5 pt-2 pb-1 text-[11px] sm:text-xs text-tw-grey flex items-center justify-between gap-1 min-h-[1.25rem]">
         <span className="truncate">{fmtHeader(m.utcDate, t)}</span>
         {isLive && <span className="text-red-600 font-bold animate-pulse shrink-0">● {t.koLive}</span>}
       </div>
       <div className="px-2.5 pb-2 space-y-1">
-        <Row code={m.home} name={m.homeName} goals={m.homeGoals} won={m.winner === "HOME_TEAM"} shown={shown} t={t} />
-        <Row code={m.away} name={m.awayName} goals={m.awayGoals} won={m.winner === "AWAY_TEAM"} shown={shown} t={t} />
+        <Row code={m.home} name={m.homeName} slot={m.homeSlot} goals={m.homeGoals} won={m.winner === "HOME_TEAM"} shown={shown} t={t} />
+        <Row code={m.away} name={m.awayName} slot={m.awaySlot} goals={m.awayGoals} won={m.winner === "AWAY_TEAM"} shown={shown} t={t} />
       </div>
       {isFinished && hasPen && (
         <div className="px-2.5 pb-1.5 text-[10px] text-tw-grey text-right">{t.koPens(m.penHome!, m.penAway!)}</div>
@@ -98,9 +137,10 @@ function Connector() {
   );
 }
 
-export default function KnockoutBracket({ bracket }: { bracket?: BracketMatch[] }) {
+export default function KnockoutBracket({ bracket, scores }: { bracket?: BracketMatch[]; scores?: (MatchScore | null)[] }) {
   const { t } = useT();
-  const matches = bracket ?? [];
+  const apiMatches = useMemo(() => bracket ?? [], [bracket]);
+  const r32 = useMemo(() => buildR32(apiMatches, scores ?? []), [apiMatches, scores]);
   const [round, setRound] = useState<string>("LAST_32");
 
   const stageLabel: Record<string, string> = {
@@ -108,29 +148,11 @@ export default function KnockoutBracket({ bracket }: { bracket?: BracketMatch[] 
     SEMI_FINALS: t.koStageSF, THIRD_PLACE: t.koStage3P, FINAL: t.koStageFinal,
   };
 
-  // Ordenadas por id (≈ nº de partido FIFA) para casar con el árbol FEEDERS.
+  // La Ronda de 32 sale siempre de la plantilla (r32); el resto, de la API.
   const byStage = (s: string) =>
-    matches.filter(m => m.stage === s).slice().sort((a, b) => a.id - b.id);
+    s === "LAST_32" ? r32 : apiMatches.filter(m => m.stage === s).slice().sort((a, b) => a.id - b.id);
 
-  const header = (
-    <div>
-      <h2 className="text-2xl sm:text-3xl font-extrabold text-tw-navy">{t.koTitle}</h2>
-      <p className="text-sm text-tw-grey mt-1">{t.koSubtitle}</p>
-    </div>
-  );
-
-  if (matches.length === 0) {
-    return (
-      <div className="max-w-4xl mx-auto space-y-6">
-        {header}
-        <div className="bg-white rounded-2xl p-8 text-center text-tw-grey border-2 border-tw-grey/20 shadow-sm">
-          ⏳ {t.koEmpty}
-        </div>
-      </div>
-    );
-  }
-
-  const tabs = STAGE_ORDER.filter(s => matches.some(m => m.stage === s));
+  const tabs = STAGE_ORDER.filter(s => s === "LAST_32" || apiMatches.some(m => m.stage === s));
   const active = tabs.includes(round) ? round : tabs[0];
 
   // ── Vista de la final (final + 3er puesto, sin conectores) ────────────────
@@ -173,7 +195,7 @@ export default function KnockoutBracket({ bracket }: { bracket?: BracketMatch[] 
       map.every(pair => pair.every(idx => idx < left.length));
 
     if (!valid) {
-      // Fallback: la ronda siguiente todavía no está completa en la API → lista simple.
+      // Aún no hay cruces de la ronda siguiente → lista simple (sin conectores).
       return (
         <div className="overflow-x-auto pb-2">
           <div className="grid gap-3 sm:grid-cols-2 w-max sm:w-auto">
@@ -208,7 +230,16 @@ export default function KnockoutBracket({ bracket }: { bracket?: BracketMatch[] 
 
   return (
     <div className="max-w-4xl mx-auto space-y-5">
-      {header}
+      <div>
+        <h2 className="text-2xl sm:text-3xl font-extrabold text-tw-navy">{t.koTitle}</h2>
+        <p className="text-sm text-tw-grey mt-1">{t.koSubtitle}</p>
+      </div>
+
+      {active === "LAST_32" && (
+        <p className="text-xs text-tw-grey bg-tw-light rounded-lg px-3 py-2 border border-tw-grey/20">
+          ℹ️ {t.koProjNote}
+        </p>
+      )}
 
       {/* Sub-pestañas por ronda */}
       <div className="flex gap-1 overflow-x-auto scrollbar-hide border-b border-tw-grey/20">

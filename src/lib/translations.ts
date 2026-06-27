@@ -34,6 +34,9 @@ export const T = {
     koToday:          "Hoy",
     koTomorrow:       "Mañana",
     koWeekdays:       ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"],
+    koPos:            ["", "1.º", "2.º", "3.º"],
+    koThird:          "3.º (mejor)",
+    koProjNote:       "Los 16avos se completan a medida que terminan los grupos. El rival del 3.º se define al cerrar la fase de grupos.",
 
     // PredictionsGrid
     gridPhaseGroups:    "Grupos · P1",
@@ -218,6 +221,9 @@ export const T = {
     koToday:          "Today",
     koTomorrow:       "Tomorrow",
     koWeekdays:       ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
+    koPos:            ["", "1st", "2nd", "3rd"],
+    koThird:          "Best 3rd",
+    koProjNote:       "The Round of 32 fills in as groups finish. Each 3rd-place opponent is set once the group stage ends.",
 
     // PredictionsGrid
     gridPhaseGroups:    "Groups · P1",
