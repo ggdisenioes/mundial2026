@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { debugBracketSources } from "@/lib/sync";
+import { debugBracketSources, debugApiFootball } from "@/lib/sync";
 import type { BracketMatch } from "@/types";
 
 export const dynamic = "force-dynamic";
@@ -9,6 +9,7 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   try {
     const { hasAfKey, fd, af, merged } = await debugBracketSources();
+    const af_diag = await debugApiFootball();
     const view = (arr: BracketMatch[]) =>
       arr
         .filter(m => m.stage === "LAST_32")
@@ -24,6 +25,7 @@ export async function GET() {
     return NextResponse.json({
       hasAfKey,
       counts: { fd: fd.length, af: af ? af.length : null, merged: merged.length },
+      apifootball_diag: af_diag,
       r32_footballdata: view(fd),
       r32_apifootball: af ? view(af) : "(sin datos de API-Football)",
       r32_combinado: view(merged),

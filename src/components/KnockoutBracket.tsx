@@ -2,7 +2,7 @@
 import { useMemo, useState } from "react";
 import type { BracketMatch, MatchScore } from "@/types";
 import { TEAMS } from "@/lib/matches";
-import { R32_TEMPLATE, resolveSlot } from "@/lib/standings";
+import { R32_TEMPLATE, resolveSlot, teamSlotSig } from "@/lib/standings";
 import { useT } from "@/contexts/LangContext";
 import type { Translations } from "@/lib/translations";
 
@@ -37,30 +37,61 @@ function slotLabel(slot: string | undefined, t: Translations): string {
   return `${t.koPos[Number(slot[0])]} ${slot.slice(1)}`;
 }
 
-// Construye la Ronda de 32 (16 partidos) con la plantilla oficial FIFA 2026,
-// completando cada slot con el equipo real (de la API si ya lo asignó, o
-// calculado desde la clasificación de grupos cuando el grupo ya cerró).
+// Construye la Ronda de 32 (16 partidos) con la plantilla oficial FIFA 2026.
+// Cada partido del proveedor se coloca en su llave por IDENTIDAD del equipo
+// (grupo + posición), NO por orden de índice — así no se mezclan cruces. Los
+// lados que el proveedor aún no resolvió se completan con la proyección
+// (posición asegurada / clasificación), y los terceros con lo que traiga la API.
 function buildR32(api: BracketMatch[], scores: (MatchScore | null)[]): BracketMatch[] {
-  const apiR32 = api.filter(m => m.stage === "LAST_32").slice().sort((a, b) => a.id - b.id);
+  const realR32 = api.filter(m => m.stage === "LAST_32");
+  const sig = (c: string | null) => (c ? teamSlotSig(c, scores) : null);
+
   return R32_TEMPLATE.map(([hs, as_], i) => {
-    const a = apiR32[i];
-    const homeCode = a?.home ?? resolveSlot(hs, scores);
-    const awayCode = a?.away ?? resolveSlot(as_, scores);
+    let home = resolveSlot(hs, scores);
+    let away = resolveSlot(as_, scores);
+    let homeGoals: number | null = null, awayGoals: number | null = null;
+    let winner: BracketMatch["winner"] = null;
+    let penHome: number | null = null, penAway: number | null = null;
+    let status = "TIMED", utcDate = "";
+
+    // El partido del proveedor cuyo equipo (con posición definida) cae en una de
+    // las dos posiciones de grupo de esta llave. "3" es genérico → no empareja.
+    const fits = (s: string | null) => !!s && s !== "3" && (s === hs || s === as_);
+    const real = realR32.find(m => fits(sig(m.home)) || fits(sig(m.away)));
+
+    if (real) {
+      // Orientar: el equipo que corresponde al slot HOME queda de local.
+      const swap = !!real.away && sig(real.away) === hs && hs !== "3";
+      const ph = swap ? real.away : real.home;
+      const pa = swap ? real.home : real.away;
+      if (ph) home = ph;
+      if (pa) away = pa;
+      homeGoals = swap ? real.awayGoals : real.homeGoals;
+      awayGoals = swap ? real.homeGoals : real.awayGoals;
+      winner = swap
+        ? (real.winner === "HOME_TEAM" ? "AWAY_TEAM" : real.winner === "AWAY_TEAM" ? "HOME_TEAM" : real.winner)
+        : real.winner;
+      penHome = swap ? real.penAway : real.penHome;
+      penAway = swap ? real.penHome : real.penAway;
+      status = real.status;
+      utcDate = real.utcDate;
+    }
+
     return {
-      id: a?.id ?? 73 + i,
+      id: 73 + i,
       stage: "LAST_32",
-      utcDate: a?.utcDate ?? "",
-      status: a?.status ?? "TIMED",
-      home: homeCode,
-      away: awayCode,
-      homeName: homeCode ? (TEAMS[homeCode]?.name ?? "") : "",
-      awayName: awayCode ? (TEAMS[awayCode]?.name ?? "") : "",
-      homeGoals: a?.homeGoals ?? null,
-      awayGoals: a?.awayGoals ?? null,
-      winner: a?.winner ?? null,
-      penHome: a?.penHome ?? null,
-      penAway: a?.penAway ?? null,
-      duration: a?.duration ?? null,
+      utcDate,
+      status,
+      home: home ?? null,
+      away: away ?? null,
+      homeName: home ? (TEAMS[home]?.name ?? "") : "",
+      awayName: away ? (TEAMS[away]?.name ?? "") : "",
+      homeGoals,
+      awayGoals,
+      winner,
+      penHome,
+      penAway,
+      duration: null,
       homeSlot: hs,
       awaySlot: as_,
     };

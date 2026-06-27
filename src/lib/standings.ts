@@ -158,3 +158,26 @@ export function resolveSlot(slot: string, scores: (MatchScore | null)[]): string
   if (slot === "3") return null;
   return positionTeam(slot.slice(1), Number(slot[0]), scores);
 }
+
+// Grupo (A–L) de cada equipo, derivado del calendario.
+export const GROUP_OF: Record<string, string> = (() => {
+  const g: Record<string, string> = {};
+  MATCHES.forEach(m => { g[m[0]] = m[2]; g[m[1]] = m[2]; });
+  return g;
+})();
+
+// Firma de slot de un equipo ya ubicable en el cuadro: "1X"/"2X"/"3", o null si
+// su posición todavía no está determinada. Sirve para colocar cada partido real
+// en su llave por IDENTIDAD (grupo + posición), no por orden del proveedor.
+export function teamSlotSig(code: string, scores: (MatchScore | null)[]): string | null {
+  const g = GROUP_OF[code];
+  if (!g) return null;
+  if (groupComplete(g, scores)) {
+    const idx = groupStandings(g, scores).findIndex(t => t.code === code);
+    return idx < 0 ? null : idx === 0 ? "1" + g : idx === 1 ? "2" + g : "3";
+  }
+  const c = clinchedPositions(g, scores);
+  if (c.first === code) return "1" + g;
+  if (c.second === code) return "2" + g;
+  return null;
+}

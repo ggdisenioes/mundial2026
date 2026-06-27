@@ -211,6 +211,32 @@ export async function isThrottled(): Promise<boolean> {
   return Date.now() - new Date(last).getTime() < THROTTLE_MS;
 }
 
+// Diagnóstico (read-only): por qué API-Football devuelve (o no) datos.
+export async function debugApiFootball() {
+  const key = process.env.API_FOOTBALL_KEY;
+  if (!key) return { ok: false, reason: "API_FOOTBALL_KEY no configurada" };
+  try {
+    const res = await fetch(`${AF_BASE}/fixtures?league=1&season=2026`, {
+      headers: { "x-apisports-key": key }, cache: "no-store",
+    });
+    const text = await res.text();
+    let json: { errors?: unknown; results?: number; response?: unknown[] } | null = null;
+    try { json = JSON.parse(text); } catch { json = null; }
+    const resp = Array.isArray(json?.response) ? json!.response : [];
+    return {
+      ok: res.ok,
+      http_status: res.status,
+      errors: json?.errors ?? null,
+      results: json?.results ?? null,
+      response_count: resp.length,
+      sample: resp.slice(0, 1),
+      raw_head: text.slice(0, 400),
+    };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "error" };
+  }
+}
+
 // Diagnóstico (read-only): devuelve el cuadro de cada fuente para comparar.
 export async function debugBracketSources() {
   const key = process.env.FOOTBALLDATA_KEY;
