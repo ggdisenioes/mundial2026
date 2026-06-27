@@ -15,6 +15,9 @@ export interface KnockoutResults {
   qf: string[];
   r16: string[];
   r32: string[];
+  // Cuadro de eliminatorias (partidos reales de la API). Se guarda embebido
+  // aquí para no requerir una columna nueva en la base de datos.
+  _bracket?: BracketMatch[];
 }
 
 export interface BonusResults {
@@ -26,6 +29,7 @@ export interface BonusResults {
 
 // Un partido del cuadro de eliminatorias, tal como lo trae la API.
 export interface BracketMatch {
+  id: number;           // id de football-data (≈ orden de nº de partido FIFA)
   stage: string;        // LAST_32 | LAST_16 | QUARTER_FINALS | SEMI_FINALS | THIRD_PLACE | FINAL
   utcDate: string;      // ISO en UTC (la UI lo pasa a hora peninsular)
   status: string;       // SCHEDULED | TIMED | IN_PLAY | PAUSED | FINISHED | AWARDED
@@ -45,7 +49,6 @@ export interface Results {
   scores: (MatchScore | null)[];
   knockout: KnockoutResults;
   bonus: BonusResults;
-  bracket?: BracketMatch[];
   updated_at?: string;
 }
 

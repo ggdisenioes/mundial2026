@@ -14,6 +14,19 @@ const NEXT: Record<string, string> = {
   SEMI_FINALS: "FINAL",
 };
 
+// Árbol oficial del cuadro FIFA 2026. Para cada partido de la ronda SIGUIENTE
+// (índice k, ordenada por nº de partido), los dos índices de la ronda ACTUAL
+// (también por nº de partido) que lo alimentan.
+//   R16: M89=W74+W77, M90=W73+W75, M91=W76+W78, M92=W79+W80,
+//        M93=W83+W84, M94=W81+W82, M95=W86+W88, M96=W85+W87
+//   QF/SF/Final: pares consecutivos.
+const FEEDERS: Record<string, number[][]> = {
+  LAST_32: [[1, 4], [0, 2], [3, 5], [6, 7], [10, 11], [8, 9], [13, 15], [12, 14]],
+  LAST_16: [[0, 1], [2, 3], [4, 5], [6, 7]],
+  QUARTER_FINALS: [[0, 1], [2, 3]],
+  SEMI_FINALS: [[0, 1]],
+};
+
 const LINE = "bg-tw-grey/45";
 
 // Horario UTC de la API → encabezado estilo Google en hora peninsular (CEST = UTC+2).
@@ -95,8 +108,9 @@ export default function KnockoutBracket({ bracket }: { bracket?: BracketMatch[] 
     SEMI_FINALS: t.koStageSF, THIRD_PLACE: t.koStage3P, FINAL: t.koStageFinal,
   };
 
+  // Ordenadas por id (≈ nº de partido FIFA) para casar con el árbol FEEDERS.
   const byStage = (s: string) =>
-    matches.filter(m => m.stage === s).slice().sort((a, b) => (a.utcDate < b.utcDate ? -1 : a.utcDate > b.utcDate ? 1 : 0));
+    matches.filter(m => m.stage === s).slice().sort((a, b) => a.id - b.id);
 
   const header = (
     <div>
@@ -153,10 +167,13 @@ export default function KnockoutBracket({ bracket }: { bracket?: BracketMatch[] 
   function RoundView() {
     const left = byStage(active);
     const right = byStage(NEXT[active]);
-    const paired = right.length > 0 && right.length * 2 === left.length;
+    const map = FEEDERS[active];
+    const valid =
+      !!map && right.length === map.length &&
+      map.every(pair => pair.every(idx => idx < left.length));
 
-    if (!paired) {
-      // Fallback: aún no hay cruces de la ronda siguiente → lista simple.
+    if (!valid) {
+      // Fallback: la ronda siguiente todavía no está completa en la API → lista simple.
       return (
         <div className="overflow-x-auto pb-2">
           <div className="grid gap-3 sm:grid-cols-2 w-max sm:w-auto">
@@ -169,18 +186,21 @@ export default function KnockoutBracket({ bracket }: { bracket?: BracketMatch[] 
     return (
       <div className="overflow-x-auto pb-2">
         <div className="flex flex-col gap-5 sm:gap-7 w-max">
-          {right.map((r, k) => (
-            <div key={k} className="flex items-stretch">
-              <div className="flex flex-col gap-3 sm:gap-4 justify-center">
-                <Card m={left[2 * k]} t={t} />
-                <Card m={left[2 * k + 1]} t={t} />
+          {right.map((r, k) => {
+            const [i, j] = map[k];
+            return (
+              <div key={k} className="flex items-stretch">
+                <div className="flex flex-col gap-3 sm:gap-4 justify-center">
+                  <Card m={left[i]} t={t} />
+                  <Card m={left[j]} t={t} />
+                </div>
+                <Connector />
+                <div className="flex flex-col justify-center">
+                  <Card m={r} t={t} />
+                </div>
               </div>
-              <Connector />
-              <div className="flex flex-col justify-center">
-                <Card m={r} t={t} />
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     );

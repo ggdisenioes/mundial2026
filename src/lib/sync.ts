@@ -9,6 +9,7 @@ const THROTTLE_MS = 10 * 60_000; // 10 min
 const KO_STAGES = ["LAST_32", "LAST_16", "QUARTER_FINALS", "SEMI_FINALS", "THIRD_PLACE", "FINAL"];
 
 interface FdMatch {
+  id: number;
   status: string;
   stage: string;
   utcDate: string;
@@ -40,6 +41,8 @@ function teamName(fdName: string | null): string {
 }
 
 // Construye el cuadro de eliminatorias a partir de los partidos de la API.
+// Se ordena por id (≈ nº de partido FIFA) para que el armado de las llaves
+// en la UI use el orden oficial del cuadro.
 function buildBracket(matches: FdMatch[]): BracketMatch[] {
   return matches
     .filter(m => KO_STAGES.includes(m.stage))
@@ -47,6 +50,7 @@ function buildBracket(matches: FdMatch[]): BracketMatch[] {
       const hCode = teamCode(m.homeTeam?.name ?? null);
       const aCode = teamCode(m.awayTeam?.name ?? null);
       return {
+        id: m.id,
         stage: m.stage,
         utcDate: m.utcDate,
         status: m.status,
@@ -62,7 +66,7 @@ function buildBracket(matches: FdMatch[]): BracketMatch[] {
         duration: m.score?.duration ?? null,
       };
     })
-    .sort((a, b) => (a.utcDate < b.utcDate ? -1 : a.utcDate > b.utcDate ? 1 : 0));
+    .sort((a, b) => a.id - b.id);
 }
 
 const pad = (arr: string[], n: number) =>
@@ -174,6 +178,8 @@ export async function runSync(): Promise<SyncSummary> {
     qf:    mergeRound(qfLosers,  curKO.qf,    4),
     r16:   mergeRound(r16losers, curKO.r16,   8),
     r32:   mergeRound(r32losers, curKO.r32,  16),
+    // El cuadro va embebido dentro de knockout: así no requiere columna nueva.
+    _bracket: buildBracket(matches),
   };
 
   // ── Persist ─────────────────────────────────────────────────────────────
@@ -182,20 +188,6 @@ export async function runSync(): Promise<SyncSummary> {
     .update({ scores, knockout, updated_at: new Date().toISOString() })
     .eq("id", 1);
   if (error) throw new Error(error.message);
-
-  // ── Cuadro de eliminatorias (best-effort) ────────────────────────────────
-  // Se persiste por separado: si la columna `bracket` todavía no existe en la
-  // base, el fallo se ignora y NUNCA rompe el sync principal de resultados.
-  try {
-    const bracket = buildBracket(matches);
-    const { error: bErr } = await supabaseAdmin
-      .from("resultados")
-      .update({ bracket })
-      .eq("id", 1);
-    if (bErr) console.warn("sync: bracket no actualizado (¿falta la columna?):", bErr.message);
-  } catch (e) {
-    console.warn("sync: error construyendo el bracket:", e);
-  }
 
   const summary: SyncSummary = { played: scores.filter(Boolean).length, knockout_matches: finished.length };
 

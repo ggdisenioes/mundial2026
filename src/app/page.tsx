@@ -115,7 +115,7 @@ export default function Home() {
         )}
         {tab === "partis" && settings && <Participants participants={participants} settings={settings} onRefresh={fetchAll} />}
         {tab === "preds"  && results && <PredictionsGrid participants={participants} results={results} />}
-        {tab === "bracket" && results && <KnockoutBracket bracket={results.bracket} />}
+        {tab === "bracket" && results && <KnockoutBracket bracket={results.knockout?._bracket} />}
         {tab === "admin"  && results && settings && (
           <AdminPanel results={results} settings={settings} unlocked={adminUnlocked} setUnlocked={setAdminUnlocked} onRefresh={fetchAll} />
         )}
