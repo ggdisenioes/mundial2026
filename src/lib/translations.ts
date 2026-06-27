@@ -30,6 +30,10 @@ export const T = {
     koStageSF:        "Semifinales",
     koStage3P:        "Tercer puesto",
     koStageFinal:     "Final",
+    koChampion:       "🏆 Campeón",
+    koToday:          "Hoy",
+    koTomorrow:       "Mañana",
+    koWeekdays:       ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"],
 
     // PredictionsGrid
     gridPhaseGroups:    "Grupos · P1",
@@ -210,6 +214,10 @@ export const T = {
     koStageSF:        "Semi-finals",
     koStage3P:        "Third place",
     koStageFinal:     "Final",
+    koChampion:       "🏆 Champion",
+    koToday:          "Today",
+    koTomorrow:       "Tomorrow",
+    koWeekdays:       ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
 
     // PredictionsGrid
     gridPhaseGroups:    "Groups · P1",
