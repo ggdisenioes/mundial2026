@@ -211,6 +211,25 @@ export async function isThrottled(): Promise<boolean> {
   return Date.now() - new Date(last).getTime() < THROTTLE_MS;
 }
 
+// Diagnóstico (read-only): devuelve el cuadro de cada fuente para comparar.
+export async function debugBracketSources() {
+  const key = process.env.FOOTBALLDATA_KEY;
+  let fd: BracketMatch[] = [];
+  if (key) {
+    const res = await fetch(`${BASE}/competitions/WC/matches?season=2026`, {
+      headers: { "X-Auth-Token": key }, cache: "no-store",
+    });
+    if (res.ok) {
+      const data = await res.json();
+      fd = buildBracket((data.matches ?? []) as FdMatch[]);
+    }
+  }
+  let af: BracketMatch[] | null = null;
+  try { af = await fetchApiFootballBracket(); } catch { af = null; }
+  const merged = mergeBracket(fd, af);
+  return { hasAfKey: !!process.env.API_FOOTBALL_KEY, fd, af, merged };
+}
+
 export interface SyncSummary {
   played: number;
   knockout_matches: number;
