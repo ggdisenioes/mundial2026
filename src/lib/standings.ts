@@ -166,18 +166,15 @@ export const GROUP_OF: Record<string, string> = (() => {
   return g;
 })();
 
-// Firma de slot de un equipo ya ubicable en el cuadro: "1X"/"2X"/"3", o null si
-// su posición todavía no está determinada. Sirve para colocar cada partido real
-// en su llave por IDENTIDAD (grupo + posición), no por orden del proveedor.
+// Firma de slot de un equipo según su posición ACTUAL en su grupo: "1X"/"2X"/"3".
+// Sirve para colocar cada partido que el proveedor YA trae en su llave por
+// IDENTIDAD (grupo + posición), no por orden de índice. Usa la posición actual
+// (no el clinch estricto) para reflejar lo que el proveedor ya colocó, igual
+// que Google. Devuelve null si el equipo aún no jugó.
 export function teamSlotSig(code: string, scores: (MatchScore | null)[]): string | null {
   const g = GROUP_OF[code];
   if (!g) return null;
-  if (groupComplete(g, scores)) {
-    const idx = groupStandings(g, scores).findIndex(t => t.code === code);
-    return idx < 0 ? null : idx === 0 ? "1" + g : idx === 1 ? "2" + g : "3";
-  }
-  const c = clinchedPositions(g, scores);
-  if (c.first === code) return "1" + g;
-  if (c.second === code) return "2" + g;
-  return null;
+  const idx = groupStandings(g, scores).findIndex(t => t.code === code);
+  if (idx < 0) return null;
+  return idx === 0 ? "1" + g : idx === 1 ? "2" + g : "3";
 }
