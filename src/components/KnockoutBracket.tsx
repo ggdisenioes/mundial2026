@@ -30,6 +30,28 @@ const FEEDERS: Record<string, number[][]> = {
 
 const LINE = "bg-tw-grey/45";
 
+// Calendario oficial de los 16avos (UTC), en el orden de la plantilla (M73→M88).
+// La UI lo pasa a hora peninsular. Si el proveedor publica el partido con su
+// horario, ese tiene prioridad (ver buildR32).
+const R32_DATES = [
+  "2026-06-28T19:00:00Z", // 73  Sudáfrica–Canadá
+  "2026-06-29T20:30:00Z", // 74  Alemania–Paraguay
+  "2026-06-30T01:00:00Z", // 75  Países Bajos–Marruecos
+  "2026-06-29T17:00:00Z", // 76  Brasil–Japón
+  "2026-06-30T21:00:00Z", // 77  Francia–Suecia
+  "2026-06-30T17:00:00Z", // 78  C. de Marfil–Noruega
+  "2026-07-01T01:00:00Z", // 79  México–Ecuador
+  "2026-07-01T16:00:00Z", // 80  Inglaterra–RD Congo
+  "2026-07-02T00:00:00Z", // 81  EE.UU.–Bosnia
+  "2026-07-01T20:00:00Z", // 82  Bélgica–Senegal
+  "2026-07-02T23:00:00Z", // 83  Portugal–Croacia
+  "2026-07-02T19:00:00Z", // 84  España–Austria
+  "2026-07-03T03:00:00Z", // 85  Suiza–Argelia
+  "2026-07-03T22:00:00Z", // 86  Argentina–Cabo Verde
+  "2026-07-04T01:30:00Z", // 87  Colombia–Ghana
+  "2026-07-03T18:00:00Z", // 88  Australia–Egipto
+];
+
 // Etiqueta de un slot de grupo ("1A" → "1.º A", "3" → "3.º (mejor)").
 function slotLabel(slot: string | undefined, t: Translations): string {
   if (!slot) return "";
@@ -55,7 +77,7 @@ function buildR32(api: BracketMatch[], scores: (MatchScore | null)[]): BracketMa
     let homeGoals: number | null = null, awayGoals: number | null = null;
     let winner: BracketMatch["winner"] = null;
     let penHome: number | null = null, penAway: number | null = null;
-    let status = "TIMED", utcDate = "";
+    let status = "TIMED", utcDate = R32_DATES[i] ?? "";
 
     // El partido del proveedor cuyo equipo (con posición definida) cae en una de
     // las dos posiciones de grupo de esta llave. "3" es genérico → no empareja.
