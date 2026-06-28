@@ -15,17 +15,27 @@ const NEXT: Record<string, string> = {
   SEMI_FINALS: "FINAL",
 };
 
-// Árbol oficial del cuadro FIFA 2026. Para cada partido de la ronda SIGUIENTE
-// (índice k, ordenada por nº de partido), los dos índices de la ronda ACTUAL
-// (también por nº de partido) que lo alimentan.
+// Orden de maquetado del cuadro, en la MISMA secuencia vertical que Google.
+// Cada entrada: `l` = los dos índices de la ronda ACTUAL (en orden de plantilla
+// M73→M88) que forman la llave; `r` = índice de la ronda SIGUIENTE (ordenada por
+// nº de partido) a la que alimenta. Para 16avos es el orden EXACTO de Google
+// (agrupa por llave e intercala las dos mitades del cuadro).
 //   R16: M89=W74+W77, M90=W73+W75, M91=W76+W78, M92=W79+W80,
 //        M93=W83+W84, M94=W81+W82, M95=W86+W88, M96=W85+W87
-//   QF/SF/Final: pares consecutivos.
-const FEEDERS: Record<string, number[][]> = {
-  LAST_32: [[1, 4], [0, 2], [3, 5], [6, 7], [10, 11], [8, 9], [13, 15], [12, 14]],
-  LAST_16: [[0, 1], [2, 3], [4, 5], [6, 7]],
-  QUARTER_FINALS: [[0, 1], [2, 3]],
-  SEMI_FINALS: [[0, 1]],
+const BRACKET_ORDER: Record<string, { l: [number, number]; r: number }[]> = {
+  LAST_32: [
+    { l: [0, 2], r: 1 },   // M73–M75 → M90
+    { l: [1, 4], r: 0 },   // M74–M77 → M89
+    { l: [9, 8], r: 5 },   // M82–M81 → M94
+    { l: [11, 10], r: 4 }, // M84–M83 → M93
+    { l: [3, 5], r: 2 },   // M76–M78 → M91
+    { l: [6, 7], r: 3 },   // M79–M80 → M92
+    { l: [12, 14], r: 7 }, // M85–M87 → M96
+    { l: [15, 13], r: 6 }, // M88–M86 → M95
+  ],
+  LAST_16: [{ l: [0, 1], r: 0 }, { l: [2, 3], r: 1 }, { l: [4, 5], r: 2 }, { l: [6, 7], r: 3 }],
+  QUARTER_FINALS: [{ l: [0, 1], r: 0 }, { l: [2, 3], r: 1 }],
+  SEMI_FINALS: [{ l: [0, 1], r: 0 }],
 };
 
 const LINE = "bg-tw-grey/45";
@@ -245,23 +255,27 @@ export default function KnockoutBracket({ bracket, scores }: { bracket?: Bracket
   // Ordena por el árbol del cuadro (pares que se enfrentan, juntos), como Google.
   function RoundView() {
     const left = byStage(active);
-    const map = FEEDERS[active];
+    const order = BRACKET_ORDER[active];
     let right = byStage(NEXT[active]);
+    const maxR = order ? Math.max(...order.map(o => o.r)) : -1;
+    const maxL = order ? Math.max(...order.flatMap(o => o.l)) : -1;
 
     // Si la ronda siguiente todavía no existe, generamos "Por definir" para
-    // mostrar siempre la estructura del cuadro (conectores incluidos), igual
-    // que Google, en vez de una lista plana por número de partido.
-    if (map && right.length < map.length && left.length > Math.max(...map.flat())) {
-      right = map.map((_, k) => right[k] ?? {
-        id: -1 - k, stage: NEXT[active], utcDate: "", status: "TIMED",
-        home: null, away: null, homeName: "", awayName: "",
-        homeGoals: null, awayGoals: null, winner: null,
-        penHome: null, penAway: null, duration: null,
-      } as BracketMatch);
+    // mostrar siempre la estructura del cuadro (conectores incluidos), como Google.
+    if (order && right.length < maxR + 1 && left.length > maxL) {
+      const filled = right.slice();
+      for (let k = 0; k <= maxR; k++) {
+        filled[k] ??= {
+          id: -1 - k, stage: NEXT[active], utcDate: "", status: "TIMED",
+          home: null, away: null, homeName: "", awayName: "",
+          homeGoals: null, awayGoals: null, winner: null,
+          penHome: null, penAway: null, duration: null,
+        } as BracketMatch;
+      }
+      right = filled;
     }
 
-    const valid = !!map && right.length >= map.length &&
-      map.every(pair => pair.every(idx => idx < left.length));
+    const valid = !!order && right.length > maxR && left.length > maxL;
 
     if (!valid) {
       return (
@@ -276,8 +290,8 @@ export default function KnockoutBracket({ bracket, scores }: { bracket?: Bracket
     return (
       <div className="overflow-x-auto pb-2">
         <div className="flex flex-col gap-5 sm:gap-7 w-max">
-          {map.map((pair, k) => {
-            const [i, j] = pair;
+          {order.map((o, k) => {
+            const [i, j] = o.l;
             return (
               <div key={k} className="flex items-stretch">
                 <div className="flex flex-col gap-3 sm:gap-4 justify-center">
@@ -286,7 +300,7 @@ export default function KnockoutBracket({ bracket, scores }: { bracket?: Bracket
                 </div>
                 <Connector />
                 <div className="flex flex-col justify-center">
-                  <Card m={right[k]} t={t} />
+                  <Card m={right[o.r]} t={t} />
                 </div>
               </div>
             );
