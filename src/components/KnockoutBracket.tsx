@@ -242,16 +242,28 @@ export default function KnockoutBracket({ bracket, scores }: { bracket?: Bracket
   }
 
   // ── Vista de ronda con conectores (ronda activa → ronda siguiente) ─────────
+  // Ordena por el árbol del cuadro (pares que se enfrentan, juntos), como Google.
   function RoundView() {
     const left = byStage(active);
-    const right = byStage(NEXT[active]);
     const map = FEEDERS[active];
-    const valid =
-      !!map && right.length === map.length &&
+    let right = byStage(NEXT[active]);
+
+    // Si la ronda siguiente todavía no existe, generamos "Por definir" para
+    // mostrar siempre la estructura del cuadro (conectores incluidos), igual
+    // que Google, en vez de una lista plana por número de partido.
+    if (map && right.length < map.length && left.length > Math.max(...map.flat())) {
+      right = map.map((_, k) => right[k] ?? {
+        id: -1 - k, stage: NEXT[active], utcDate: "", status: "TIMED",
+        home: null, away: null, homeName: "", awayName: "",
+        homeGoals: null, awayGoals: null, winner: null,
+        penHome: null, penAway: null, duration: null,
+      } as BracketMatch);
+    }
+
+    const valid = !!map && right.length >= map.length &&
       map.every(pair => pair.every(idx => idx < left.length));
 
     if (!valid) {
-      // Aún no hay cruces de la ronda siguiente → lista simple (sin conectores).
       return (
         <div className="overflow-x-auto pb-2">
           <div className="grid gap-3 sm:grid-cols-2 w-max sm:w-auto">
@@ -264,8 +276,8 @@ export default function KnockoutBracket({ bracket, scores }: { bracket?: Bracket
     return (
       <div className="overflow-x-auto pb-2">
         <div className="flex flex-col gap-5 sm:gap-7 w-max">
-          {right.map((r, k) => {
-            const [i, j] = map[k];
+          {map.map((pair, k) => {
+            const [i, j] = pair;
             return (
               <div key={k} className="flex items-stretch">
                 <div className="flex flex-col gap-3 sm:gap-4 justify-center">
@@ -274,7 +286,7 @@ export default function KnockoutBracket({ bracket, scores }: { bracket?: Bracket
                 </div>
                 <Connector />
                 <div className="flex flex-col justify-center">
-                  <Card m={r} t={t} />
+                  <Card m={right[k]} t={t} />
                 </div>
               </div>
             );
