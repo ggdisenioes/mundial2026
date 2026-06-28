@@ -1,4 +1,4 @@
-import { MATCHES } from "./matches";
+import { MATCHES, GROUPS } from "./matches";
 import type { MatchScore } from "@/types";
 
 export interface TeamStanding {
@@ -157,6 +157,33 @@ export function positionTeam(group: string, pos: number, scores: (MatchScore | n
 export function resolveSlot(slot: string, scores: (MatchScore | null)[]): string | null {
   if (slot === "3") return null;
   return positionTeam(slot.slice(1), Number(slot[0]), scores);
+}
+
+// Asignación oficial FIFA (Anexo C) de los 8 mejores terceros a las llaves
+// "1.º vs 3.º", por combinación de los grupos cuyos terceros clasifican.
+// Clave: grupos clasificados ordenados alfabéticamente. Valor: grupo del
+// ganador → grupo del 3.º rival. (Se añade la combinación vigente, verificada
+// con el cuadro oficial publicado.)
+const THIRD_ALLOCATIONS: Record<string, Record<string, string>> = {
+  // Terceros clasificados: B, D, E, F, I, J, K, L
+  BDEFIJKL: { E: "D", I: "F", A: "E", L: "K", D: "B", G: "I", B: "J", K: "L" },
+};
+
+// 3.º que enfrenta al ganador de un grupo, una vez cerrados los 12 grupos.
+// Ordena los 12 terceros (pts → dif. gol → goles a favor), toma los 8 mejores y
+// aplica la tabla oficial. Devuelve null si aún no se puede determinar.
+export function thirdTeamFor(winnerGroup: string, scores: (MatchScore | null)[]): string | null {
+  const thirds = GROUPS
+    .filter(g => groupComplete(g, scores))
+    .map(g => ({ group: g, t: groupStandings(g, scores)[2] }))
+    .filter((x): x is { group: string; t: TeamStanding } => !!x.t);
+  if (thirds.length < GROUPS.length) return null; // faltan grupos por cerrar
+  thirds.sort((a, b) =>
+    b.t.pts - a.t.pts || b.t.gd - a.t.gd || b.t.gf - a.t.gf || (a.group < b.group ? -1 : 1));
+  const combo = thirds.slice(0, 8).map(x => x.group).sort().join("");
+  const thirdGroup = THIRD_ALLOCATIONS[combo]?.[winnerGroup];
+  if (!thirdGroup) return null;
+  return groupStandings(thirdGroup, scores)[2]?.code ?? null;
 }
 
 // Grupo (A–L) de cada equipo, derivado del calendario.

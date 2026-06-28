@@ -2,7 +2,7 @@
 import { useMemo, useState } from "react";
 import type { BracketMatch, MatchScore } from "@/types";
 import { TEAMS } from "@/lib/matches";
-import { R32_TEMPLATE, resolveSlot, teamSlotSig } from "@/lib/standings";
+import { R32_TEMPLATE, resolveSlot, teamSlotSig, thirdTeamFor } from "@/lib/standings";
 import { useT } from "@/contexts/LangContext";
 import type { Translations } from "@/lib/translations";
 
@@ -49,6 +49,9 @@ function buildR32(api: BracketMatch[], scores: (MatchScore | null)[]): BracketMa
   return R32_TEMPLATE.map(([hs, as_], i) => {
     let home = resolveSlot(hs, scores);
     let away = resolveSlot(as_, scores);
+    // Completar el 3.º (slot "3") con la asignación oficial, cerrados los grupos.
+    if (!away && as_ === "3" && hs !== "3") away = thirdTeamFor(hs.slice(1), scores);
+    if (!home && hs === "3" && as_ !== "3") home = thirdTeamFor(as_.slice(1), scores);
     let homeGoals: number | null = null, awayGoals: number | null = null;
     let winner: BracketMatch["winner"] = null;
     let penHome: number | null = null, penAway: number | null = null;
