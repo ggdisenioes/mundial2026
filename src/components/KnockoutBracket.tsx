@@ -222,21 +222,21 @@ function fmtHeader(utc: string, t: Translations): string {
   return `${t.koWeekdays[cest.getUTCDay()]} ${cest.getUTCDate()}/${cest.getUTCMonth() + 1}, ${time}`;
 }
 
-function Row({ code, name, slot, goals, won, shown, t }: {
-  code: string | null; name: string; slot?: string; goals: number | null; won: boolean; shown: boolean; t: Translations;
+function Row({ code, name, slot, goals, won, shown, t, compact = false }: {
+  code: string | null; name: string; slot?: string; goals: number | null; won: boolean; shown: boolean; t: Translations; compact?: boolean;
 }) {
   const flag = code ? TEAMS[code]?.flag : null;
   const hasTeam = !!name;
   const label = name || slotLabel(slot, t) || t.koTBD;
   return (
-    <div className={`flex items-center justify-between gap-1.5 ${won ? "font-bold" : ""}`}>
-      <div className="flex items-center gap-1.5 min-w-0">
-        <span className="text-base shrink-0">{flag ?? "🛡️"}</span>
-        <span className={`truncate text-xs sm:text-sm ${hasTeam ? "text-tw-navy" : "text-tw-grey italic"}`}>
+    <div className={`flex items-center justify-between gap-1 ${won ? "font-bold" : ""}`}>
+      <div className="flex items-center gap-1 min-w-0">
+        <span className={`${compact ? "text-xs" : "text-base"} shrink-0`}>{flag ?? "🛡️"}</span>
+        <span className={`truncate ${compact ? "text-[10px] leading-tight" : "text-xs sm:text-sm"} ${hasTeam ? "text-tw-navy" : "text-tw-grey italic"}`}>
           {label}
         </span>
       </div>
-      <span className="shrink-0 text-sm font-bold tabular-nums text-tw-navy">
+      <span className={`shrink-0 font-bold tabular-nums text-tw-navy ${compact ? "text-[11px]" : "text-sm"}`}>
         {shown && goals != null ? goals : ""}
       </span>
     </div>
@@ -248,18 +248,18 @@ function Card({ m, t, big = false, compact = false }: { m: BracketMatch; t: Tran
   const isLive = m.status === "IN_PLAY" || m.status === "PAUSED";
   const shown = isFinished || isLive;
   const hasPen = m.penHome != null && m.penAway != null;
-  const width = compact ? "w-36" : big ? "w-60 sm:w-72" : "w-40 sm:w-52";
+  const width = compact ? "w-28" : big ? "w-60 sm:w-72" : "w-40 sm:w-52";
   return (
-    <div className={`${width} shrink-0 bg-white rounded-xl border border-tw-grey/25 shadow-sm overflow-hidden`}>
-      <div className="px-2.5 pt-2 pb-1 text-[11px] sm:text-xs text-tw-grey flex items-center justify-between gap-1 min-h-[1.25rem]">
+    <div className={`${width} shrink-0 bg-white rounded-lg border border-tw-grey/25 shadow-sm overflow-hidden`}>
+      <div className={`${compact ? "px-1.5 pt-1 pb-0.5 text-[9px]" : "px-2.5 pt-2 pb-1 text-[11px] sm:text-xs"} text-tw-grey flex items-center justify-between gap-1 min-h-[1rem]`}>
         <span className="truncate">{fmtHeader(m.utcDate, t)}</span>
-        {isLive && <span className="text-red-600 font-bold animate-pulse shrink-0">● {t.koLive}</span>}
+        {isLive && <span className="text-red-600 font-bold animate-pulse shrink-0">●{compact ? "" : ` ${t.koLive}`}</span>}
       </div>
-      <div className="px-2.5 pb-2 space-y-1">
-        <Row code={m.home} name={m.homeName} slot={m.homeSlot} goals={m.homeGoals} won={m.winner === "HOME_TEAM"} shown={shown} t={t} />
-        <Row code={m.away} name={m.awayName} slot={m.awaySlot} goals={m.awayGoals} won={m.winner === "AWAY_TEAM"} shown={shown} t={t} />
+      <div className={compact ? "px-1.5 pb-1 space-y-0.5" : "px-2.5 pb-2 space-y-1"}>
+        <Row code={m.home} name={m.homeName} slot={m.homeSlot} goals={m.homeGoals} won={m.winner === "HOME_TEAM"} shown={shown} t={t} compact={compact} />
+        <Row code={m.away} name={m.awayName} slot={m.awaySlot} goals={m.awayGoals} won={m.winner === "AWAY_TEAM"} shown={shown} t={t} compact={compact} />
       </div>
-      {isFinished && hasPen && (
+      {isFinished && hasPen && !compact && (
         <div className="px-2.5 pb-1.5 text-[10px] text-tw-grey text-right">{t.koPens(m.penHome!, m.penAway!)}</div>
       )}
     </div>
@@ -298,7 +298,7 @@ function BConn({ n, dir }: { n: number; dir: "ltr" | "rtl" }) {
   const feed = dir === "ltr" ? "left-0 right-1/2" : "left-1/2 right-0";
   const out = dir === "ltr" ? "left-1/2 right-0" : "left-0 right-1/2";
   return (
-    <div className="flex flex-col w-5 lg:w-7 shrink-0 self-stretch">
+    <div className="flex flex-col w-4 lg:w-5 shrink-0 self-stretch">
       {Array.from({ length: n }).map((_, k) => (
         <div key={k} className="flex-1 relative">
           <span className={`absolute top-1/4 h-px ${LINE} ${feed}`} />
@@ -357,7 +357,7 @@ export default function KnockoutBracket({ bracket, scores }: { bracket?: Bracket
   const apiMatches = useMemo(() => bracket ?? [], [bracket]);
   const rounds = useMemo(() => buildFullBracket(apiMatches, scores ?? []), [apiMatches, scores]);
   const [round, setRound] = useState<string>("LAST_32");
-  const [view, setView] = useState<"list" | "bracket">("list");
+  const [view, setView] = useState<"list" | "bracket">("bracket");
 
   const stageLabel: Record<string, string> = {
     LAST_32: t.koStageL32, LAST_16: t.koStageL16, QUARTER_FINALS: t.koStageQF,
@@ -459,8 +459,28 @@ export default function KnockoutBracket({ bracket, scores }: { bracket?: Bracket
     );
   }
 
+  const listView = (
+    <>
+      {/* Sub-pestañas por ronda */}
+      <div className="flex gap-1 overflow-x-auto scrollbar-hide border-b border-tw-grey/20">
+        {tabs.map(s => (
+          <button
+            key={s}
+            onClick={() => setRound(s)}
+            className={`shrink-0 px-3 sm:px-4 py-2 text-sm font-semibold whitespace-nowrap border-b-2 -mb-px transition-colors ${
+              active === s ? "border-tw-green text-tw-navy" : "border-transparent text-tw-grey hover:text-tw-navy"
+            }`}
+          >
+            {stageLabel[s]}
+          </button>
+        ))}
+      </div>
+      {active === "FINAL" ? <FinalView /> : <RoundView />}
+    </>
+  );
+
   return (
-    <div className={`${view === "bracket" ? "max-w-[1700px]" : "max-w-4xl"} mx-auto space-y-5`}>
+    <div className="max-w-4xl mx-auto space-y-5">
       <div className="flex items-start justify-between gap-3">
         <div>
           <h2 className="text-2xl sm:text-3xl font-extrabold text-tw-navy">{t.koTitle}</h2>
@@ -468,7 +488,7 @@ export default function KnockoutBracket({ bracket, scores }: { bracket?: Bracket
         </div>
         {/* Selector de vista — solo desktop */}
         <div className="hidden lg:flex gap-1 bg-tw-light border border-tw-grey/20 rounded-lg p-1 shrink-0">
-          {([["list", "📋 Lista"], ["bracket", "🗂️ Cuadro"]] as const).map(([v, label]) => (
+          {([["bracket", "🗂️ Cuadro"], ["list", "📋 Lista"]] as const).map(([v, label]) => (
             <button
               key={v}
               onClick={() => setView(v)}
@@ -482,28 +502,17 @@ export default function KnockoutBracket({ bracket, scores }: { bracket?: Bracket
         </div>
       </div>
 
-      {view === "bracket" ? (
-        <TwoSidedBracket rounds={rounds} t={t} />
-      ) : (
-        <>
-          {/* Sub-pestañas por ronda */}
-          <div className="flex gap-1 overflow-x-auto scrollbar-hide border-b border-tw-grey/20">
-            {tabs.map(s => (
-              <button
-                key={s}
-                onClick={() => setRound(s)}
-                className={`shrink-0 px-3 sm:px-4 py-2 text-sm font-semibold whitespace-nowrap border-b-2 -mb-px transition-colors ${
-                  active === s ? "border-tw-green text-tw-navy" : "border-transparent text-tw-grey hover:text-tw-navy"
-                }`}
-              >
-                {stageLabel[s]}
-              </button>
-            ))}
-          </div>
-
-          {active === "FINAL" ? <FinalView /> : <RoundView />}
-        </>
+      {/* Cuadro a dos lados: solo desktop y a ancho completo (rompe el margen) */}
+      {view === "bracket" && (
+        <div className="hidden lg:block relative left-1/2 -translate-x-1/2 w-screen px-4">
+          <TwoSidedBracket rounds={rounds} t={t} />
+        </div>
       )}
+
+      {/* Lista: siempre en móvil; en desktop solo si está elegida */}
+      <div className={view === "bracket" ? "lg:hidden" : ""}>
+        {listView}
+      </div>
     </div>
   );
 }
