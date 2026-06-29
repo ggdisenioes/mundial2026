@@ -243,13 +243,14 @@ function Row({ code, name, slot, goals, won, shown, t }: {
   );
 }
 
-function Card({ m, t, big = false }: { m: BracketMatch; t: Translations; big?: boolean }) {
+function Card({ m, t, big = false, compact = false }: { m: BracketMatch; t: Translations; big?: boolean; compact?: boolean }) {
   const isFinished = m.status === "FINISHED" || m.status === "AWARDED";
   const isLive = m.status === "IN_PLAY" || m.status === "PAUSED";
   const shown = isFinished || isLive;
   const hasPen = m.penHome != null && m.penAway != null;
+  const width = compact ? "w-36" : big ? "w-60 sm:w-72" : "w-40 sm:w-52";
   return (
-    <div className={`${big ? "w-60 sm:w-72" : "w-40 sm:w-52"} shrink-0 bg-white rounded-xl border border-tw-grey/25 shadow-sm overflow-hidden`}>
+    <div className={`${width} shrink-0 bg-white rounded-xl border border-tw-grey/25 shadow-sm overflow-hidden`}>
       <div className="px-2.5 pt-2 pb-1 text-[11px] sm:text-xs text-tw-grey flex items-center justify-between gap-1 min-h-[1.25rem]">
         <span className="truncate">{fmtHeader(m.utcDate, t)}</span>
         {isLive && <span className="text-red-600 font-bold animate-pulse shrink-0">● {t.koLive}</span>}
@@ -277,11 +278,86 @@ function Connector() {
   );
 }
 
+// ── Vista de cuadro a dos lados (estilo llave clásica, solo desktop) ───────
+const EMPTY_M: BracketMatch = {
+  id: 0, stage: "", utcDate: "", status: "TIMED", home: null, away: null,
+  homeName: "", awayName: "", homeGoals: null, awayGoals: null, winner: null,
+  penHome: null, penAway: null, duration: null,
+};
+
+function BCol({ cards, t }: { cards: (BracketMatch | undefined)[]; t: Translations }) {
+  return (
+    <div className="flex flex-col justify-around shrink-0">
+      {cards.map((m, i) => <Card key={i} m={m ?? EMPTY_M} t={t} compact />)}
+    </div>
+  );
+}
+
+// Columna de conectores: n llaves, apuntando a la derecha (ltr) o izquierda (rtl).
+function BConn({ n, dir }: { n: number; dir: "ltr" | "rtl" }) {
+  const feed = dir === "ltr" ? "left-0 right-1/2" : "left-1/2 right-0";
+  const out = dir === "ltr" ? "left-1/2 right-0" : "left-0 right-1/2";
+  return (
+    <div className="flex flex-col w-5 lg:w-7 shrink-0 self-stretch">
+      {Array.from({ length: n }).map((_, k) => (
+        <div key={k} className="flex-1 relative">
+          <span className={`absolute top-1/4 h-px ${LINE} ${feed}`} />
+          <span className={`absolute bottom-1/4 h-px ${LINE} ${feed}`} />
+          <span className={`absolute top-1/4 bottom-1/4 w-px ${LINE} left-1/2`} />
+          <span className={`absolute top-1/2 h-px ${LINE} ${out}`} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function TwoSidedBracket({ rounds, t }: { rounds: Record<string, BracketMatch[]>; t: Translations }) {
+  const L32 = rounds.LAST_32 ?? [], L16 = rounds.LAST_16 ?? [], QF = rounds.QUARTER_FINALS ?? [];
+  const SF = rounds.SEMI_FINALS ?? [], FIN = rounds.FINAL ?? [], TP = rounds.THIRD_PLACE ?? [];
+  const pick = (arr: BracketMatch[], idx: number[]) => idx.map(i => arr[i]);
+  return (
+    <div className="overflow-x-auto pb-3">
+      <div className="flex items-stretch min-h-[700px] w-max mx-auto text-tw-navy">
+        {/* Mitad izquierda */}
+        <BCol cards={pick(L32, [1, 4, 0, 2, 3, 5, 6, 7])} t={t} />
+        <BConn n={4} dir="ltr" />
+        <BCol cards={pick(L16, [0, 1, 2, 3])} t={t} />
+        <BConn n={2} dir="ltr" />
+        <BCol cards={pick(QF, [0, 1])} t={t} />
+        <BConn n={1} dir="ltr" />
+        <BCol cards={pick(SF, [0])} t={t} />
+        <BConn n={1} dir="ltr" />
+        {/* Centro: final + 3.º puesto */}
+        <div className="relative flex flex-col justify-center items-center px-2 shrink-0">
+          <div className="flex flex-col items-center gap-1">
+            <span className="text-xs font-extrabold text-tw-navy">🏆 {t.koStageFinal}</span>
+            <Card m={FIN[0] ?? EMPTY_M} t={t} compact />
+          </div>
+          <div className="absolute bottom-1 flex flex-col items-center gap-1">
+            <span className="text-[11px] font-semibold text-tw-grey">{t.koStage3P}</span>
+            <Card m={TP[0] ?? EMPTY_M} t={t} compact />
+          </div>
+        </div>
+        {/* Mitad derecha (espejada) */}
+        <BConn n={1} dir="rtl" />
+        <BCol cards={pick(SF, [1])} t={t} />
+        <BConn n={1} dir="rtl" />
+        <BCol cards={pick(QF, [2, 3])} t={t} />
+        <BConn n={2} dir="rtl" />
+        <BCol cards={pick(L16, [4, 5, 6, 7])} t={t} />
+        <BConn n={4} dir="rtl" />
+        <BCol cards={pick(L32, [10, 11, 8, 9, 13, 15, 12, 14])} t={t} />
+      </div>
+    </div>
+  );
+}
+
 export default function KnockoutBracket({ bracket, scores }: { bracket?: BracketMatch[]; scores?: (MatchScore | null)[] }) {
   const { t } = useT();
   const apiMatches = useMemo(() => bracket ?? [], [bracket]);
   const rounds = useMemo(() => buildFullBracket(apiMatches, scores ?? []), [apiMatches, scores]);
   const [round, setRound] = useState<string>("LAST_32");
+  const [view, setView] = useState<"list" | "bracket">("list");
 
   const stageLabel: Record<string, string> = {
     LAST_32: t.koStageL32, LAST_16: t.koStageL16, QUARTER_FINALS: t.koStageQF,
@@ -384,28 +460,50 @@ export default function KnockoutBracket({ bracket, scores }: { bracket?: Bracket
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-5">
-      <div>
-        <h2 className="text-2xl sm:text-3xl font-extrabold text-tw-navy">{t.koTitle}</h2>
-        <p className="text-sm text-tw-grey mt-1">{t.koSubtitle}</p>
+    <div className={`${view === "bracket" ? "max-w-[1700px]" : "max-w-4xl"} mx-auto space-y-5`}>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-tw-navy">{t.koTitle}</h2>
+          <p className="text-sm text-tw-grey mt-1">{t.koSubtitle}</p>
+        </div>
+        {/* Selector de vista — solo desktop */}
+        <div className="hidden lg:flex gap-1 bg-tw-light border border-tw-grey/20 rounded-lg p-1 shrink-0">
+          {([["list", "📋 Lista"], ["bracket", "🗂️ Cuadro"]] as const).map(([v, label]) => (
+            <button
+              key={v}
+              onClick={() => setView(v)}
+              className={`px-3 py-1.5 text-sm font-semibold rounded-md transition-colors ${
+                view === v ? "bg-white text-tw-navy shadow-sm" : "text-tw-grey hover:text-tw-navy"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* Sub-pestañas por ronda */}
-      <div className="flex gap-1 overflow-x-auto scrollbar-hide border-b border-tw-grey/20">
-        {tabs.map(s => (
-          <button
-            key={s}
-            onClick={() => setRound(s)}
-            className={`shrink-0 px-3 sm:px-4 py-2 text-sm font-semibold whitespace-nowrap border-b-2 -mb-px transition-colors ${
-              active === s ? "border-tw-green text-tw-navy" : "border-transparent text-tw-grey hover:text-tw-navy"
-            }`}
-          >
-            {stageLabel[s]}
-          </button>
-        ))}
-      </div>
+      {view === "bracket" ? (
+        <TwoSidedBracket rounds={rounds} t={t} />
+      ) : (
+        <>
+          {/* Sub-pestañas por ronda */}
+          <div className="flex gap-1 overflow-x-auto scrollbar-hide border-b border-tw-grey/20">
+            {tabs.map(s => (
+              <button
+                key={s}
+                onClick={() => setRound(s)}
+                className={`shrink-0 px-3 sm:px-4 py-2 text-sm font-semibold whitespace-nowrap border-b-2 -mb-px transition-colors ${
+                  active === s ? "border-tw-green text-tw-navy" : "border-transparent text-tw-grey hover:text-tw-navy"
+                }`}
+              >
+                {stageLabel[s]}
+              </button>
+            ))}
+          </div>
 
-      {active === "FINAL" ? <FinalView /> : <RoundView />}
+          {active === "FINAL" ? <FinalView /> : <RoundView />}
+        </>
+      )}
     </div>
   );
 }
