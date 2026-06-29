@@ -133,6 +133,80 @@ function buildR32(api: BracketMatch[], scores: (MatchScore | null)[]): BracketMa
   });
 }
 
+// Ganador / perdedor de un partido (si ya terminó y tiene resultado).
+function winnerCode(m?: BracketMatch | null): string | null {
+  if (!m) return null;
+  return m.winner === "HOME_TEAM" ? m.home : m.winner === "AWAY_TEAM" ? m.away : null;
+}
+function loserCode(m?: BracketMatch | null): string | null {
+  if (!m) return null;
+  return m.winner === "HOME_TEAM" ? m.away : m.winner === "AWAY_TEAM" ? m.home : null;
+}
+
+// Construye un partido de una ronda avanzada con dos equipos ya conocidos (o
+// null = "Por definir"). El marcador/estado/fecha sale del partido del
+// proveedor que coincida por equipos; si no, usa la fecha posicional.
+function makeMatch(stage: string, home: string | null, away: string | null, prov: BracketMatch | undefined, dateFallback: string): BracketMatch {
+  let homeGoals: number | null = null, awayGoals: number | null = null;
+  let winner: BracketMatch["winner"] = null;
+  let penHome: number | null = null, penAway: number | null = null;
+  let status = "TIMED";
+  let utcDate = prov?.utcDate || dateFallback || "";
+  if (prov && home && away) {
+    const swap = prov.home !== home; // equipos coinciden pero quizá invertidos
+    homeGoals = swap ? prov.awayGoals : prov.homeGoals;
+    awayGoals = swap ? prov.homeGoals : prov.awayGoals;
+    winner = swap
+      ? (prov.winner === "HOME_TEAM" ? "AWAY_TEAM" : prov.winner === "AWAY_TEAM" ? "HOME_TEAM" : prov.winner)
+      : prov.winner;
+    penHome = swap ? prov.penAway : prov.penHome;
+    penAway = swap ? prov.penHome : prov.penAway;
+    status = prov.status;
+    utcDate = prov.utcDate || utcDate;
+  }
+  return {
+    id: 0, stage, utcDate, status, home, away,
+    homeName: home ? (TEAMS[home]?.name ?? "") : "",
+    awayName: away ? (TEAMS[away]?.name ?? "") : "",
+    homeGoals, awayGoals, winner, penHome, penAway, duration: null,
+  };
+}
+
+const sameTeams = (m: BracketMatch, h: string, a: string) =>
+  (m.home === h && m.away === a) || (m.home === a && m.away === h);
+
+// Avanza una ronda a la siguiente: cada partido de la ronda siguiente lo juegan
+// los GANADORES de sus dos partidos de origen (según el árbol del cuadro).
+function advanceRound(cur: BracketMatch[], curStage: string, api: BracketMatch[]): BracketMatch[] {
+  const order = BRACKET_ORDER[curStage];
+  const nextStage = NEXT[curStage];
+  const prov = api.filter(m => m.stage === nextStage).slice().sort((a, b) => a.id - b.id);
+  const next: BracketMatch[] = order.map(() => makeMatch(nextStage, null, null, undefined, ""));
+  for (const o of order) {
+    const home = winnerCode(cur[o.l[0]]);
+    const away = winnerCode(cur[o.l[1]]);
+    const matched = home && away ? prov.find(m => sameTeams(m, home, away)) : undefined;
+    next[o.r] = makeMatch(nextStage, home, away, matched, prov[o.r]?.utcDate ?? "");
+  }
+  return next;
+}
+
+// Cuadro completo: 16avos (plantilla) y de ahí, avanzando ganadores, octavos →
+// cuartos → semis → final, más el partido por el 3.º puesto (perdedores semis).
+function buildFullBracket(api: BracketMatch[], scores: (MatchScore | null)[]): Record<string, BracketMatch[]> {
+  const LAST_32 = buildR32(api, scores);
+  const LAST_16 = advanceRound(LAST_32, "LAST_32", api);
+  const QUARTER_FINALS = advanceRound(LAST_16, "LAST_16", api);
+  const SEMI_FINALS = advanceRound(QUARTER_FINALS, "QUARTER_FINALS", api);
+  const FINAL = advanceRound(SEMI_FINALS, "SEMI_FINALS", api);
+  const tHome = loserCode(SEMI_FINALS[0]);
+  const tAway = loserCode(SEMI_FINALS[1]);
+  const prov3 = api.filter(m => m.stage === "THIRD_PLACE").slice().sort((a, b) => a.id - b.id);
+  const m3 = tHome && tAway ? prov3.find(m => sameTeams(m, tHome, tAway)) : undefined;
+  const THIRD_PLACE = [makeMatch("THIRD_PLACE", tHome, tAway, m3, prov3[0]?.utcDate ?? "")];
+  return { LAST_32, LAST_16, QUARTER_FINALS, SEMI_FINALS, FINAL, THIRD_PLACE };
+}
+
 // Horario UTC de la API → encabezado estilo Google en hora peninsular (CEST = UTC+2).
 function fmtHeader(utc: string, t: Translations): string {
   const d = new Date(utc);
@@ -206,7 +280,7 @@ function Connector() {
 export default function KnockoutBracket({ bracket, scores }: { bracket?: BracketMatch[]; scores?: (MatchScore | null)[] }) {
   const { t } = useT();
   const apiMatches = useMemo(() => bracket ?? [], [bracket]);
-  const r32 = useMemo(() => buildR32(apiMatches, scores ?? []), [apiMatches, scores]);
+  const rounds = useMemo(() => buildFullBracket(apiMatches, scores ?? []), [apiMatches, scores]);
   const [round, setRound] = useState<string>("LAST_32");
 
   const stageLabel: Record<string, string> = {
@@ -214,11 +288,10 @@ export default function KnockoutBracket({ bracket, scores }: { bracket?: Bracket
     SEMI_FINALS: t.koStageSF, THIRD_PLACE: t.koStage3P, FINAL: t.koStageFinal,
   };
 
-  // La Ronda de 32 sale siempre de la plantilla (r32); el resto, de la API.
-  const byStage = (s: string) =>
-    s === "LAST_32" ? r32 : apiMatches.filter(m => m.stage === s).slice().sort((a, b) => a.id - b.id);
+  // Todas las rondas salen del cuadro calculado (16avos + avance de ganadores).
+  const byStage = (s: string) => rounds[s] ?? [];
 
-  const tabs = STAGE_ORDER.filter(s => s === "LAST_32" || apiMatches.some(m => m.stage === s));
+  const tabs = STAGE_ORDER;
   const active = tabs.includes(round) ? round : tabs[0];
 
   // ── Vista de la final (final + 3er puesto, sin conectores) ────────────────
