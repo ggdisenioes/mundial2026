@@ -390,12 +390,6 @@ export default function KnockoutBracket({ bracket, scores }: { bracket?: Bracket
         <p className="text-sm text-tw-grey mt-1">{t.koSubtitle}</p>
       </div>
 
-      {active === "LAST_32" && (
-        <p className="text-xs text-tw-grey bg-tw-light rounded-lg px-3 py-2 border border-tw-grey/20">
-          ℹ️ {t.koProjNote}
-        </p>
-      )}
-
       {/* Sub-pestañas por ronda */}
       <div className="flex gap-1 overflow-x-auto scrollbar-hide border-b border-tw-grey/20">
         {tabs.map(s => (
