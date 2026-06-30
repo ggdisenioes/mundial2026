@@ -290,7 +290,11 @@ export async function runSync(): Promise<SyncSummary> {
   const curKO: Partial<KnockoutResults> = cur?.knockout ?? {};
 
   // ── Group stage scores ──────────────────────────────────────────────────
+  // Una vez cargado un resultado, queda CONGELADO: el sync no lo reescribe. Así
+  // P1/P2 y el bonus (más goleador/goleado) no fluctúan si el proveedor ajusta
+  // los goles más tarde. (El admin sigue pudiendo editarlo a mano en el panel.)
   const scores: (MatchScore | null)[] = MATCHES.map(([home, away], idx) => {
+    if (curScores[idx]) return curScores[idx];
     const fix = matches.find(m =>
       (m.status === "FINISHED" || m.status === "AWARDED") &&
       m.stage === "GROUP_STAGE" &&
@@ -306,7 +310,7 @@ export async function runSync(): Promise<SyncSummary> {
         a: normalOrder ? (fix.score.fullTime.away ?? 0) : (fix.score.fullTime.home ?? 0),
       };
     }
-    return curScores[idx] ?? null;
+    return null;
   });
 
   // ── Knockout ────────────────────────────────────────────────────────────
