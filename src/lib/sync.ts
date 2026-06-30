@@ -1,6 +1,7 @@
 import { supabaseAdmin } from "./supabase-admin";
 import { MATCHES, TEAMS, FDORG_NAME_TO_CODE } from "./matches";
-import type { MatchScore, KnockoutResults, BracketMatch } from "@/types";
+import { computeAutoBonus } from "./scoring";
+import type { MatchScore, KnockoutResults, BracketMatch, BonusResults } from "@/types";
 
 const BASE = "https://api.football-data.org/v4";
 const THROTTLE_MS = 10 * 60_000; // 10 min
@@ -281,13 +282,14 @@ export async function runSync(): Promise<SyncSummary> {
   // Load current row so sync never wipes manually-entered data
   const { data: cur, error: curErr } = await supabaseAdmin
     .from("resultados")
-    .select("scores, knockout")
+    .select("scores, knockout, bonus")
     .eq("id", 1)
     .single();
   if (curErr) throw new Error(curErr.message);
 
   const curScores: (MatchScore | null)[] = Array.isArray(cur?.scores) ? cur.scores : [];
   const curKO: Partial<KnockoutResults> = cur?.knockout ?? {};
+  const curBonus: Partial<BonusResults> = cur?.bonus ?? {};
 
   // ── Group stage scores ──────────────────────────────────────────────────
   // Una vez cargado un resultado, queda CONGELADO: el sync no lo reescribe. Así
@@ -365,10 +367,25 @@ export async function runSync(): Promise<SyncSummary> {
     _bracket: bracket,
   };
 
+  // ── Bonus de fase de grupos: se FIJA una sola vez (más goleador/goleado) ──
+  // Cerrados los 12 grupos, se guarda el valor como override y NO se vuelve a
+  // calcular desde los goles. Si el admin ya puso un override, se respeta.
+  const bonus: BonusResults = {
+    goldenBoot: curBonus.goldenBoot ?? "",
+    topEspScorer: curBonus.topEspScorer ?? "",
+    topTeamOverride: curBonus.topTeamOverride ?? "",
+    mostConcededOverride: curBonus.mostConcededOverride ?? "",
+  };
+  if (scores.every(s => s !== null)) {
+    const auto = computeAutoBonus(scores);
+    if (!bonus.topTeamOverride && auto.topTeam) bonus.topTeamOverride = auto.topTeam;
+    if (!bonus.mostConcededOverride && auto.mostConceded) bonus.mostConcededOverride = auto.mostConceded;
+  }
+
   // ── Persist ─────────────────────────────────────────────────────────────
   const { error } = await supabaseAdmin
     .from("resultados")
-    .update({ scores, knockout, updated_at: new Date().toISOString() })
+    .update({ scores, knockout, bonus, updated_at: new Date().toISOString() })
     .eq("id", 1);
   if (error) throw new Error(error.message);
 
