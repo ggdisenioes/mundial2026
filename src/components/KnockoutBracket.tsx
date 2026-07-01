@@ -33,7 +33,8 @@ const BRACKET_ORDER: Record<string, { l: [number, number]; r: number }[]> = {
     { l: [12, 14], r: 7 }, // M85–M87 → M96
     { l: [15, 13], r: 6 }, // M88–M86 → M95
   ],
-  LAST_16: [{ l: [0, 1], r: 0 }, { l: [2, 3], r: 1 }, { l: [4, 5], r: 2 }, { l: [6, 7], r: 3 }],
+  // Cuartos oficiales: M97=W89+W90, M98=W93+W94, M99=W91+W92, M100=W95+W96.
+  LAST_16: [{ l: [0, 1], r: 0 }, { l: [4, 5], r: 1 }, { l: [2, 3], r: 2 }, { l: [6, 7], r: 3 }],
   QUARTER_FINALS: [{ l: [0, 1], r: 0 }, { l: [2, 3], r: 1 }],
   SEMI_FINALS: [{ l: [0, 1], r: 0 }],
 };
@@ -311,34 +312,45 @@ function BConn({ n, dir }: { n: number; dir: "ltr" | "rtl" }) {
   );
 }
 
-// Cuadro de un solo lado: 16avos → octavos → cuartos → semis → final (todo
-// hacia la derecha), con el 3.º puesto debajo. Orden vertical estándar (las
-// llaves anidan sin cruzarse).
-function FullBracket({ rounds, t }: { rounds: Record<string, BracketMatch[]>; t: Translations }) {
+// Cuadro a DOS LADOS con las mitades oficiales. Izquierda = mitad de la final
+// M101 (R32 73,74,75,77,81,82,83,84); derecha = mitad M102 (76,78,79,80,85..88),
+// espejada. Así España/Argentina y Francia/Inglaterra van en lados opuestos.
+function TwoSidedBracket({ rounds, t }: { rounds: Record<string, BracketMatch[]>; t: Translations }) {
   const L32 = rounds.LAST_32 ?? [], L16 = rounds.LAST_16 ?? [], QF = rounds.QUARTER_FINALS ?? [];
   const SF = rounds.SEMI_FINALS ?? [], FIN = rounds.FINAL ?? [], TP = rounds.THIRD_PLACE ?? [];
   const pick = (arr: BracketMatch[], idx: number[]) => idx.map(i => arr[i]);
   return (
-    <div className="overflow-x-auto pb-4">
-      <div className="flex items-stretch min-h-[880px] w-max text-tw-navy">
-        <BCol cards={pick(L32, [1, 4, 0, 2, 3, 5, 6, 7, 10, 11, 8, 9, 13, 15, 12, 14])} t={t} />
-        <BConn n={8} dir="ltr" />
-        <BCol cards={pick(L16, [0, 1, 2, 3, 4, 5, 6, 7])} t={t} />
+    <div className="overflow-x-auto pb-3">
+      <div className="flex items-stretch min-h-[720px] w-max mx-auto text-tw-navy">
+        {/* Mitad izquierda (M101) */}
+        <BCol cards={pick(L32, [1, 4, 0, 2, 10, 11, 8, 9])} t={t} />
         <BConn n={4} dir="ltr" />
-        <BCol cards={pick(QF, [0, 1, 2, 3])} t={t} />
+        <BCol cards={pick(L16, [0, 1, 4, 5])} t={t} />
         <BConn n={2} dir="ltr" />
-        <BCol cards={pick(SF, [0, 1])} t={t} />
+        <BCol cards={pick(QF, [0, 1])} t={t} />
         <BConn n={1} dir="ltr" />
-        {/* Final */}
-        <div className="flex flex-col justify-center items-center px-3 shrink-0">
-          <span className="text-xs font-extrabold text-tw-navy mb-1">🏆 {t.koStageFinal}</span>
-          <Card m={FIN[0] ?? EMPTY_M} t={t} compact />
+        <BCol cards={pick(SF, [0])} t={t} />
+        <BConn n={1} dir="ltr" />
+        {/* Centro: final + 3.º puesto */}
+        <div className="relative flex flex-col justify-center items-center px-2 shrink-0">
+          <div className="flex flex-col items-center gap-1">
+            <span className="text-xs font-extrabold text-tw-navy">🏆 {t.koStageFinal}</span>
+            <Card m={FIN[0] ?? EMPTY_M} t={t} compact />
+          </div>
+          <div className="absolute bottom-1 flex flex-col items-center gap-1">
+            <span className="text-[11px] font-semibold text-tw-grey">{t.koStage3P}</span>
+            <Card m={TP[0] ?? EMPTY_M} t={t} compact />
+          </div>
         </div>
-      </div>
-      {/* 3.º puesto, debajo del cuadro */}
-      <div className="mt-2 flex items-center gap-2 pl-2">
-        <span className="text-[11px] font-semibold text-tw-grey">{t.koStage3P}:</span>
-        <Card m={TP[0] ?? EMPTY_M} t={t} compact />
+        {/* Mitad derecha (M102), espejada */}
+        <BConn n={1} dir="rtl" />
+        <BCol cards={pick(SF, [1])} t={t} />
+        <BConn n={1} dir="rtl" />
+        <BCol cards={pick(QF, [2, 3])} t={t} />
+        <BConn n={2} dir="rtl" />
+        <BCol cards={pick(L16, [2, 3, 6, 7])} t={t} />
+        <BConn n={4} dir="rtl" />
+        <BCol cards={pick(L32, [3, 5, 6, 7, 13, 15, 12, 14])} t={t} />
       </div>
     </div>
   );
@@ -494,10 +506,10 @@ export default function KnockoutBracket({ bracket, scores }: { bracket?: Bracket
         </div>
       </div>
 
-      {/* Cuadro completo (un solo lado): solo desktop */}
+      {/* Cuadro a dos lados: solo desktop y a ancho completo (rompe el margen) */}
       {view === "bracket" && (
-        <div className="hidden lg:block">
-          <FullBracket rounds={rounds} t={t} />
+        <div className="hidden lg:block relative left-1/2 -translate-x-1/2 w-screen px-4">
+          <TwoSidedBracket rounds={rounds} t={t} />
         </div>
       )}
 
