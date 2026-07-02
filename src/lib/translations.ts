@@ -76,6 +76,7 @@ export const T = {
     liveTopScorer:    (team: string, goals: number) => `⚽ Más goleador: ${team} (${goals} goles)`,
     liveMostConceded: (team: string, goals: number) => `🥅 Más goleado: ${team} (${goals} goles)`,
     liveStatsOf:      (played: number, total: number) => `Tras ${played}/${total} partidos`,
+    nextMatchesTitle: "Próximos partidos",
 
     // Participants
     uploadTitle:      "Subir pronóstico (.xlsx)",
@@ -263,6 +264,7 @@ export const T = {
     liveTopScorer:    (team: string, goals: number) => `⚽ Top scorer: ${team} (${goals} goals)`,
     liveMostConceded: (team: string, goals: number) => `🥅 Most conceded: ${team} (${goals} goals)`,
     liveStatsOf:      (played: number, total: number) => `After ${played}/${total} matches`,
+    nextMatchesTitle: "Upcoming matches",
 
     // Participants
     uploadTitle:      "Upload prediction (.xlsx)",

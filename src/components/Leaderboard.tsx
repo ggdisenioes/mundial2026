@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import type { Participant, Results } from "@/types";
 import { scoreParticipant, liveGroupStats } from "@/lib/scoring";
 import { MATCHES } from "@/lib/matches";
+import NextMatches from "./NextMatches";
 import { useT } from "@/contexts/LangContext";
 
 interface Props {
@@ -76,6 +77,9 @@ export default function Leaderboard({ participants, results, onSelect, onRefresh
           <p className="sm:col-span-2 text-xs text-tw-grey text-right -mt-1">{t.liveStatsOf(stats.matchesPlayed, MATCHES.length)}</p>
         </div>
       )}
+
+      {/* Próximos 3 partidos (eliminatorias) */}
+      <NextMatches results={results} />
 
       {ranked.length > 0 && (
         <div className="relative">
