@@ -78,13 +78,31 @@ export function buildR32(api: BracketMatch[], scores: (MatchScore | null)[]): Br
   });
 }
 
-export function winnerCode(m?: BracketMatch | null): string | null {
+// Resultado del partido: "HOME" | "AWAY" | null. Usa el campo `winner` del
+// proveedor, y si no está, lo DEDUCE del marcador (y de los penales si el
+// tiempo reglamentario terminó empatado). Así el ganador avanza aunque el
+// proveedor no marque bien el `winner` en partidos definidos por penales.
+function outcome(m?: BracketMatch | null): "HOME" | "AWAY" | null {
   if (!m) return null;
-  return m.winner === "HOME_TEAM" ? m.home : m.winner === "AWAY_TEAM" ? m.away : null;
+  if (m.winner === "HOME_TEAM") return "HOME";
+  if (m.winner === "AWAY_TEAM") return "AWAY";
+  const finished = m.status === "FINISHED" || m.status === "AWARDED";
+  if (finished && m.homeGoals != null && m.awayGoals != null) {
+    if (m.homeGoals > m.awayGoals) return "HOME";
+    if (m.awayGoals > m.homeGoals) return "AWAY";
+    if (m.penHome != null && m.penAway != null && m.penHome !== m.penAway) {
+      return m.penHome > m.penAway ? "HOME" : "AWAY";
+    }
+  }
+  return null;
+}
+export function winnerCode(m?: BracketMatch | null): string | null {
+  const o = outcome(m);
+  return o === "HOME" ? m!.home : o === "AWAY" ? m!.away : null;
 }
 export function loserCode(m?: BracketMatch | null): string | null {
-  if (!m) return null;
-  return m.winner === "HOME_TEAM" ? m.away : m.winner === "AWAY_TEAM" ? m.home : null;
+  const o = outcome(m);
+  return o === "HOME" ? m!.away : o === "AWAY" ? m!.home : null;
 }
 
 function makeMatch(stage: string, home: string | null, away: string | null, prov: BracketMatch | undefined, dateFallback: string): BracketMatch {
