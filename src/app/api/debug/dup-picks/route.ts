@@ -11,7 +11,7 @@ export async function GET() {
   const { data, error } = await supabase.from("participantes").select("nombre, picks");
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  const out: { nombre: string; repetidos: string[][] }[] = [];
+  const out: { nombre: string; repetidos: string[][]; excel: Record<string, unknown> }[] = [];
   for (const p of (data ?? []) as Participant[]) {
     const p3 = p.picks?.p3;
     if (!p3) continue;
@@ -29,7 +29,14 @@ export async function GET() {
     const byNorm: Record<string, string[]> = {};
     for (const [team, fase] of entries) (byNorm[norm(team)] ??= []).push(`${team} (${fase})`);
     const dups = Object.values(byNorm).filter(v => v.length > 1);
-    if (dups.length) out.push({ nombre: p.nombre, repetidos: dups });
+    if (dups.length) out.push({
+      nombre: p.nombre,
+      repetidos: dups,
+      excel: {
+        campeon: p3.winner, subcampeon: p3.runnerUp,
+        semifinalistas: p3.semis, cuartos: p3.qf, octavos: p3.r16, "16avos": p3.r32,
+      },
+    });
   }
 
   return NextResponse.json({ con_repetidos: out.length, participantes: out });
