@@ -38,8 +38,8 @@ export default function PrediccionesPage() {
           <p className="text-tw-green text-xs font-bold uppercase tracking-widest">Porra del Mundial 2026</p>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-white mt-1">🔮 ¿Quién puede ganar la porra?</h1>
           <p className="text-white/60 text-sm mt-2 max-w-xl">
-            Cada barra muestra los puntos <strong className="text-white/90">asegurados</strong> y hasta dónde puede
-            llegar con los aciertos marcados. Tocá los aciertos para simular escenarios.
+            Elegí el ganador de cada llave y mirá <strong className="text-white/90">quién gana la porra</strong> si
+            el Mundial termina así. Los goleadores también suman.
           </p>
         </div>
       </header>
