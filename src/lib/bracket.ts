@@ -162,6 +162,56 @@ export function buildFullBracket(api: BracketMatch[], scores: (MatchScore | null
   return { LAST_32, LAST_16, QUARTER_FINALS, SEMI_FINALS, FINAL, THIRD_PLACE };
 }
 
+// ── Escenario hipotético ("si queda así…") ────────────────────────────────
+// Un partido ya jugado queda BLOQUEADO con su ganador real; uno pendiente toma
+// el ganador elegido por el usuario (choices["STAGE:pos"] = "HOME"|"AWAY", por
+// defecto "HOME"). Se estampa en `winner` para que winnerCode/loserCode —y por
+// ende advanceRound— propaguen el escenario sin tocar su lógica.
+export type ScenarioSide = "HOME" | "AWAY";
+export type ScenarioChoices = Record<string, ScenarioSide>;
+
+export function isLockedMatch(m?: BracketMatch | null): boolean {
+  return !!m && (m.status === "FINISHED" || m.status === "AWARDED") && winnerCode(m) != null;
+}
+
+function stampChoices(arr: BracketMatch[], stage: string, choices: ScenarioChoices): BracketMatch[] {
+  return arr.map((m, i) => {
+    if (!m.home || !m.away || isLockedMatch(m)) return m;
+    const side = choices[`${stage}:${i}`] ?? "HOME";
+    return { ...m, winner: side === "AWAY" ? "AWAY_TEAM" : "HOME_TEAM" };
+  });
+}
+
+export function buildScenarioBracket(
+  api: BracketMatch[], scores: (MatchScore | null)[], choices: ScenarioChoices,
+): Record<string, BracketMatch[]> {
+  const LAST_32 = stampChoices(buildR32(api, scores), "LAST_32", choices);
+  const LAST_16 = stampChoices(advanceRound(LAST_32, "LAST_32", api), "LAST_16", choices);
+  const QUARTER_FINALS = stampChoices(advanceRound(LAST_16, "LAST_16", api), "QUARTER_FINALS", choices);
+  const SEMI_FINALS = stampChoices(advanceRound(QUARTER_FINALS, "QUARTER_FINALS", api), "SEMI_FINALS", choices);
+  const FINAL = stampChoices(advanceRound(SEMI_FINALS, "SEMI_FINALS", api), "FINAL", choices);
+  return { LAST_32, LAST_16, QUARTER_FINALS, SEMI_FINALS, FINAL };
+}
+
+// Resumen de eliminatorias (con NOMBRES) que produce el escenario, con la misma
+// forma que results.knockout: winner, runnerUp y perdedores por ronda.
+export function scenarioSummary(rounds: Record<string, BracketMatch[]>): {
+  winner: string; runnerUp: string; semis: string[]; qf: string[]; r16: string[]; r32: string[];
+} {
+  const nameOf = (c: string | null) => (c ? TEAMS[c]?.name ?? c : "");
+  const losers = (arr: BracketMatch[]) =>
+    (arr ?? []).filter(m => m.home && m.away).map(m => nameOf(loserCode(m))).filter(Boolean);
+  const fin = rounds.FINAL?.[0];
+  return {
+    winner: nameOf(winnerCode(fin)),
+    runnerUp: nameOf(loserCode(fin)),
+    semis: losers(rounds.SEMI_FINALS),
+    qf: losers(rounds.QUARTER_FINALS),
+    r16: losers(rounds.LAST_16),
+    r32: losers(rounds.LAST_32),
+  };
+}
+
 // Próximos `n` partidos por jugarse (no terminados), ordenados por horario.
 export function upcomingMatches(api: BracketMatch[], scores: (MatchScore | null)[], nowMs: number, n: number): BracketMatch[] {
   const rounds = buildFullBracket(api, scores);

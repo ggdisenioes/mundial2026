@@ -2,6 +2,7 @@
 import { useMemo, useState } from "react";
 import type { Participant, Results } from "@/types";
 import { predictionRanking, type PredictionRow } from "@/lib/predictions";
+import ScenarioBuilder from "@/components/ScenarioBuilder";
 
 const MEDALS = ["🥇", "🥈", "🥉"];
 const FASE_BOTA = "Bota de Oro";
@@ -156,6 +157,7 @@ export default function Projections({ participants, results, embedded = false }:
   participants: Participant[]; results: Results; embedded?: boolean;
 }) {
   const rows = useMemo(() => predictionRanking(participants, results), [participants, results]);
+  const [mode, setMode] = useState<"techos" | "escenario">("techos");
   const [off, setOff] = useState<Set<string>>(new Set()); // chips apagados: "id:idx"
   const [incBota, setIncBota] = useState(true);
   const [incEsp, setIncEsp] = useState(true);
@@ -206,6 +208,24 @@ export default function Projections({ participants, results, embedded = false }:
 
   return (
     <div className={embedded ? "max-w-4xl mx-auto space-y-5" : "max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-5"}>
+      {/* Conmutador de modo */}
+      <div className="inline-flex gap-1 bg-tw-navy/5 rounded-xl p-1">
+        {([["techos", "📈 Techos"], ["escenario", "🔮 Si queda así…"]] as const).map(([m, lbl]) => (
+          <button
+            key={m}
+            onClick={() => setMode(m)}
+            className={`px-3 sm:px-4 py-1.5 text-xs sm:text-sm font-semibold rounded-lg transition-colors ${
+              mode === m ? "bg-white text-tw-navy shadow-sm" : "text-tw-navy/60 hover:text-tw-navy"
+            }`}
+          >
+            {lbl}
+          </button>
+        ))}
+      </div>
+
+      {mode === "escenario" ? (
+        <ScenarioBuilder participants={participants} results={results} />
+      ) : (<>
       {/* Stat tiles */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <StatTile icon="🏆" label="Líder actual" value={`${leaderCurrent} pts`} sub={leaderRow?.nombre ?? "—"} />
@@ -286,6 +306,7 @@ export default function Projections({ participants, results, embedded = false }:
           <li>La proyección es una cota individual: dos escenarios óptimos pueden ser incompatibles entre sí (solo un campeón se dará).</li>
         </ul>
       </details>
+      </>)}
     </div>
   );
 }
