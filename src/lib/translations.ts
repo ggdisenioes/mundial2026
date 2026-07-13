@@ -14,6 +14,7 @@ export const T = {
     tabRules:         "📖 Reglas",
     tabPredictions:   "📊 Predicciones",
     tabBracket:       "⚔️ Eliminatorias",
+    tabProjections:   "🔮 Proyecciones",
 
     // KnockoutBracket
     koTitle:          "Cuadro de eliminatorias",
@@ -202,6 +203,7 @@ export const T = {
     tabRules:         "📖 Rules",
     tabPredictions:   "📊 Predictions",
     tabBracket:       "⚔️ Knockout",
+    tabProjections:   "🔮 Projections",
 
     // KnockoutBracket
     koTitle:          "Knockout bracket",

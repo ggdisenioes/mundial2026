@@ -10,10 +10,11 @@ import ApiStatus        from "@/components/ApiStatus";
 import LangSelector     from "@/components/LangSelector";
 import PredictionsGrid  from "@/components/PredictionsGrid";
 import KnockoutBracket  from "@/components/KnockoutBracket";
+import Projections      from "@/components/Projections";
 import { supabase }  from "@/lib/supabase";
 import { useT }      from "@/contexts/LangContext";
 
-type Tab = "tabla" | "partis" | "preds" | "bracket" | "admin" | "reglas";
+type Tab = "tabla" | "partis" | "preds" | "proyec" | "bracket" | "admin" | "reglas";
 
 export default function Home() {
   const { t } = useT();
@@ -64,6 +65,7 @@ export default function Home() {
     ["tabla",  t.tabLeaderboard],
     ["partis", t.tabParticipants],
     ["preds",  t.tabPredictions],
+    ["proyec", t.tabProjections],
     ["bracket",t.tabBracket],
     ["admin",  t.tabResults],
     ["reglas", t.tabRules],
@@ -115,6 +117,7 @@ export default function Home() {
         )}
         {tab === "partis" && settings && <Participants participants={participants} settings={settings} onRefresh={fetchAll} />}
         {tab === "preds"  && results && <PredictionsGrid participants={participants} results={results} />}
+        {tab === "proyec" && results && <Projections participants={participants} results={results} embedded />}
         {tab === "bracket" && results && <KnockoutBracket bracket={results.knockout?._bracket} scores={results.scores} />}
         {tab === "admin"  && results && settings && (
           <AdminPanel results={results} settings={settings} unlocked={adminUnlocked} setUnlocked={setAdminUnlocked} onRefresh={fetchAll} />
