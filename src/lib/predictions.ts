@@ -92,6 +92,12 @@ function canAchieve(pick: string, target: Target, status: Record<string, TeamSta
   return posIdx >= curIdx;
 }
 
+export interface PendingPick {
+  fase: string;   // etiqueta legible ("Campeón", "Octavos", "Bota de Oro"…)
+  equipo: string; // equipo o jugador predicho
+  pts: number;
+}
+
 export interface PredictionRow {
   id: string;
   nombre: string;
@@ -100,44 +106,60 @@ export interface PredictionRow {
   potentialExtra: number;
   canWin: boolean; // best >= mejor puntaje actual → aún puede alcanzar al líder
   currentBreakdown: { p1: number; p2: number; p3: number; p4: number };
+  pending: PendingPick[]; // los aciertos que le faltan para llegar a `best`
 }
 
-// Puntaje máximo alcanzable por un participante: P1/P2 ya están fijos, P3 y P4
-// se calculan como "todo lo que aún puede acertar, acierta".
-export function bestCaseScore(p: Participant, results: Results): number {
+// Aciertos PENDIENTES de un participante: picks que todavía pueden cumplirse y
+// aún no se cumplieron. El puntaje máximo es exactamente actual + su suma, así
+// el detalle y el número nunca se contradicen.
+export function pendingPicks(p: Participant, results: Results): PendingPick[] {
   const rounds = buildFullBracket(results.knockout?._bracket ?? [], results.scores ?? []);
   const status = buildTeamStatus(rounds);
-  const pk = p.picks?.p3 ?? {} as Partial<Participant["picks"]["p3"]>;
-  const cur = scoreParticipant(p, results);
+  const pk = p.picks?.p3 ?? ({} as Partial<Participant["picks"]["p3"]>);
+  const kn = results.knockout;
+  const out: PendingPick[] = [];
 
-  let p3 = 0;
-  if (canAchieve(pk.winner ?? "", "champion", status, rounds)) p3 += 50;
-  if (canAchieve(pk.runnerUp ?? "", "runnerUp", status, rounds)) p3 += 30;
-  for (const t of pk.semis ?? []) if (canAchieve(t, "SF", status, rounds)) p3 += 15;
-  for (const t of pk.qf ?? []) if (canAchieve(t, "QF", status, rounds)) p3 += 6;
-  for (const t of pk.r16 ?? []) if (canAchieve(t, "R16", status, rounds)) p3 += 3;
-  for (const t of pk.r32 ?? []) if (canAchieve(t, "R32", status, rounds)) p3 += 2;
+  const achievedIn = (arr: string[] | undefined, team: string) =>
+    (arr ?? []).some(a => a && norm(a) === norm(team));
 
-  // P4: los bonus de grupos ya están fijados; los de jugadores aún son abiertos.
+  const check = (
+    team: string | undefined, target: Target, fase: string, pts: number, achieved: boolean,
+  ) => {
+    if (!team || !team.trim() || achieved) return;
+    if (canAchieve(team, target, status, rounds)) out.push({ fase, equipo: team.trim(), pts });
+  };
+
+  check(pk.winner, "champion", "Campeón", 50, !!kn.winner && norm(kn.winner) === norm(pk.winner ?? ""));
+  check(pk.runnerUp, "runnerUp", "Subcampeón", 30, !!kn.runnerUp && norm(kn.runnerUp) === norm(pk.runnerUp ?? ""));
+  for (const t of pk.semis ?? []) check(t, "SF", "Semis", 15, achievedIn(kn.semis, t));
+  for (const t of pk.qf ?? []) check(t, "QF", "Cuartos", 6, achievedIn(kn.qf, t));
+  for (const t of pk.r16 ?? []) check(t, "R16", "Octavos", 3, achievedIn(kn.r16, t));
+  for (const t of pk.r32 ?? []) check(t, "R32", "16avos", 2, achievedIn(kn.r32, t));
+
+  // P4: los bonus de grupos ya están fijados (si acertó, ya está en el actual).
+  // Los de jugadores siguen abiertos hasta el final del torneo.
   const eb = effectiveBonus(results);
-  let p4 = 0;
-  if (p.picks.p4?.topScorerTeam && norm(p.picks.p4.topScorerTeam) === norm(eb.topTeam)) p4 += 10;
-  if (p.picks.p4?.mostConceded && norm(p.picks.p4.mostConceded) === norm(eb.mostConceded)) p4 += 10;
-  if (p.picks.p4?.goldenBoot) p4 += 10;    // aún abierto → mejor caso: acierta
-  if (p.picks.p4?.topEspScorer) p4 += 10;  // idem
+  if (p.picks.p4?.goldenBoot && !(eb.goldenBoot && norm(eb.goldenBoot) === norm(p.picks.p4.goldenBoot))) {
+    out.push({ fase: "Bota de Oro", equipo: p.picks.p4.goldenBoot, pts: 10 });
+  }
+  if (p.picks.p4?.topEspScorer && !(eb.topEspScorer && norm(eb.topEspScorer) === norm(p.picks.p4.topEspScorer))) {
+    out.push({ fase: "Goleador 🇪🇸", equipo: p.picks.p4.topEspScorer, pts: 10 });
+  }
 
-  return cur.p1 + cur.p2 + p3 + p4;
+  return out;
 }
 
 export function predictionRanking(participants: Participant[], results: Results): PredictionRow[] {
   const raw = participants.map(p => {
     const cur = scoreParticipant(p, results);
-    const best = bestCaseScore(p, results);
+    const pending = pendingPicks(p, results);
+    const best = cur.total + pending.reduce((s, x) => s + x.pts, 0);
     return {
       id: p.id, nombre: p.nombre,
       current: cur.total, best, potentialExtra: best - cur.total,
       canWin: false,
       currentBreakdown: { p1: cur.p1, p2: cur.p2, p3: cur.p3, p4: cur.p4 },
+      pending,
     };
   });
   const leaderCurrent = raw.reduce((mx, r) => Math.max(mx, r.current), 0);

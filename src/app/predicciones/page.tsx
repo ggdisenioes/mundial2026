@@ -88,6 +88,35 @@ function RowCard({ row, i, scaleMax, leader, muted }: {
             <span>Eliminatorias <strong className="text-tw-navy/70">{bd.p3}</strong></span>
             <span>Bonus <strong className="text-tw-navy/70">{bd.p4}</strong></span>
           </div>
+
+          {/* aciertos pendientes para llegar al máximo */}
+          {row.pending.length > 0 ? (
+            <details className="mt-2">
+              <summary className={`cursor-pointer select-none text-[11px] font-semibold ${
+                muted ? "text-tw-grey" : "text-emerald-700 hover:text-emerald-800"
+              }`}>
+                Necesita {row.pending.length} acierto{row.pending.length !== 1 ? "s" : ""} para llegar a {row.best} pts ▾
+              </summary>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {row.pending.map((pp, k) => (
+                  <span
+                    key={k}
+                    className={`inline-flex items-center gap-1 text-[10px] rounded-lg border px-1.5 py-0.5 ${
+                      muted
+                        ? "border-tw-grey/40 bg-tw-light text-tw-grey"
+                        : "border-tw-green/60 bg-tw-green/10 text-tw-navy"
+                    }`}
+                  >
+                    <span className="font-bold">{pp.fase}:</span>
+                    <span>{pp.equipo}</span>
+                    <span className={`font-bold tabular-nums ${muted ? "" : "text-emerald-700"}`}>+{pp.pts}</span>
+                  </span>
+                ))}
+              </div>
+            </details>
+          ) : (
+            <p className="mt-2 text-[11px] text-tw-grey">Sin aciertos pendientes — su puntaje está cerrado.</p>
+          )}
         </div>
       </div>
     </div>
