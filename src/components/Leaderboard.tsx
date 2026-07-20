@@ -29,6 +29,18 @@ export default function Leaderboard({ participants, results, onSelect, onRefresh
 
   const stats = useMemo(() => liveGroupStats(results.scores), [results.scores]);
 
+  // La porra queda cerrada cuando el Mundial ya tiene campeón (final jugada).
+  // Ahí destacamos y felicitamos al ganador (o ganadores, si hay empate arriba).
+  const champDecided = !!results.knockout?.winner?.trim();
+  const topScore = ranked[0]?.score.total ?? 0;
+  const winnerNames = champDecided && ranked.length
+    ? ranked.filter(r => r.score.total === topScore).map(r => r.p.nombre)
+    : [];
+  const isWinner = (total: number) => champDecided && ranked.length > 0 && total === topScore;
+  const winnersLabel = winnerNames.length > 1
+    ? winnerNames.slice(0, -1).join(", ") + " y " + winnerNames[winnerNames.length - 1]
+    : winnerNames[0] ?? "";
+
   const filtered = useMemo(() => {
     const q = normSearch(query.trim());
     if (!q) return ranked.map((item, i) => ({ ...item, rank: i }));
@@ -43,6 +55,25 @@ export default function Leaderboard({ participants, results, onSelect, onRefresh
 
   return (
     <div className="space-y-4 sm:space-y-5">
+      {champDecided && winnerNames.length > 0 && (
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-tw-navy to-[#0a2570] px-5 py-6 sm:px-8 sm:py-8 text-center shadow-lg ring-2 ring-tw-green/50">
+          <div aria-hidden className="pointer-events-none absolute inset-0 opacity-20 text-3xl select-none leading-[2.2rem] tracking-[0.6rem]">
+            🎉🏆✨🎊⚽🥇🎉🏆✨🎊⚽🥇🎉🏆✨🎊⚽🥇🎉🏆✨🎊⚽🥇🎉🏆✨🎊⚽🥇🎉🏆✨🎊⚽🥇
+          </div>
+          <div className="relative">
+            <div className="text-4xl sm:text-5xl mb-1">🎉🏆🎉</div>
+            <p className="text-tw-green text-[11px] sm:text-xs font-bold uppercase tracking-widest">Porra del Mundial 2026 · ¡Torneo finalizado!</p>
+            <h2 className="mt-1.5 text-2xl sm:text-4xl font-extrabold text-white leading-tight">
+              ¡Enhorabuena, {winnersLabel}! 🥇
+            </h2>
+            <p className="mt-2 text-white/85 text-sm sm:text-base">
+              {winnerNames.length > 1 ? "Ganadores" : "Ganador"} de la porra con{" "}
+              <strong className="text-tw-green">{topScore} pts</strong>. ¡Enhorabuena, campeón! 👑
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="flex items-start sm:items-center justify-between gap-3">
         <div>
           <h2 className="text-2xl sm:text-3xl font-extrabold text-tw-navy">{t.leaderboardTitle}</h2>
@@ -104,18 +135,24 @@ export default function Leaderboard({ participants, results, onSelect, onRefresh
           {filtered.map(({ p, score, rank }) => {
             const medal = rank === 0 ? "🥇" : rank === 1 ? "🥈" : rank === 2 ? "🥉" : null;
             const isTop3 = rank < 3;
+            const won = isWinner(score.total);
             return (
               <button key={p.id} onClick={() => onSelect(p)}
                 className={`w-full text-left rounded-2xl border-2 transition-all active:scale-[0.99] p-4 sm:p-5 flex items-center gap-3 sm:gap-5 ${
-                  isTop3 ? "bg-white border-tw-navy/10 hover:border-tw-green shadow-sm hover:shadow-md"
-                         : "bg-white border-tw-grey/30 hover:border-tw-green hover:shadow-sm"
+                  won ? "bg-tw-green/10 border-tw-green ring-2 ring-tw-green/50 shadow-md"
+                      : isTop3 ? "bg-white border-tw-navy/10 hover:border-tw-green shadow-sm hover:shadow-md"
+                               : "bg-white border-tw-grey/30 hover:border-tw-green hover:shadow-sm"
                 }`}>
                 <div className="shrink-0 w-10 sm:w-12 flex items-center justify-center">
-                  {medal ? <span className="text-2xl sm:text-3xl">{medal}</span>
-                         : <span className="text-base sm:text-lg font-bold text-tw-grey">{rank + 1}</span>}
+                  {won ? <span className="text-2xl sm:text-3xl">👑</span>
+                       : medal ? <span className="text-2xl sm:text-3xl">{medal}</span>
+                               : <span className="text-base sm:text-lg font-bold text-tw-grey">{rank + 1}</span>}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="font-bold text-base sm:text-xl text-tw-navy truncate">{p.nombre}</div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-bold text-base sm:text-xl text-tw-navy truncate">{p.nombre}</span>
+                    {won && <span className="shrink-0 text-[10px] sm:text-xs font-bold uppercase tracking-wide bg-tw-green text-tw-navy px-2 py-0.5 rounded-full">🏆 Campeón de la porra</span>}
+                  </div>
                   <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1">
                     {[
                       { k: "P1", v: score.p1 }, { k: t.p2Label, v: score.p2 },
