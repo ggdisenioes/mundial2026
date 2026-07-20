@@ -6,13 +6,31 @@ import type { KnockoutResults } from "@/types";
 
 export const dynamic = "force-dynamic";
 
+// Goleadores oficiales del Mundial 2026, ya finalizado (España campeona).
+//  · Bota de Oro (máximo goleador del torneo): Kylian Mbappé — 10 goles.
+//  · Máximo goleador de España: Mikel Oyarzabal — 5 goles.
+// Fuentes: FIFA.com, FOX Sports, Yahoo Sports (jul-2026). Se usan como valor
+// por defecto: si el admin los carga a mano en el panel, ese valor tiene
+// prioridad (el `||` sólo rellena cuando el campo viene vacío de la base).
+const FINAL_TOP_SCORERS = {
+  goldenBoot: "Kylian Mbappé",
+  topEspScorer: "Mikel Oyarzabal",
+};
+
 export async function GET() {
   const [res, set] = await Promise.all([
     supabase.from("resultados").select("*").single(),
     supabase.from("settings").select("*").single(),
   ]);
   if (res.error) return NextResponse.json({ error: res.error.message }, { status: 500 });
-  return NextResponse.json({ results: res.data, settings: set.data });
+
+  const data = res.data as { bonus?: Record<string, string> } | null;
+  if (data?.bonus && typeof data.bonus === "object") {
+    data.bonus.goldenBoot = data.bonus.goldenBoot || FINAL_TOP_SCORERS.goldenBoot;
+    data.bonus.topEspScorer = data.bonus.topEspScorer || FINAL_TOP_SCORERS.topEspScorer;
+  }
+
+  return NextResponse.json({ results: data, settings: set.data });
 }
 
 export async function PUT(req: NextRequest) {
